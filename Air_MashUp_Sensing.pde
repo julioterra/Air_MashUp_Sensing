@@ -1,11 +1,9 @@
 //#include <MIDI.h>
 
-
-
 class mixerChannel {
     public:
         #define READINGS_ARRAY_SIZE 100
-        #define AVERAGE_READING_BUFFER_SIZE 15
+        #define AVERAGE_READING_BUFFER_SIZE 25
         unsigned long timeStamps[READINGS_ARRAY_SIZE];
         int rawReadings[READINGS_ARRAY_SIZE];
         int avgReadings[READINGS_ARRAY_SIZE];
@@ -50,7 +48,7 @@ class mixerChannel {
 // the bandwidth determines how far up or down the readings need to go in order to move the volume up or down
 // the ignore range helps reduce noise by ignoring any large sudden jumps in the sensor readings
 
-
+boolean connectionStarted = false;
 mixerChannel channel1 = mixerChannel(1, "ch1");
 
 void setup() {
@@ -59,11 +57,16 @@ void setup() {
 
 
 void loop() {
-    channel1.addNewTimedReading(millis());
-    if (channel1.gestOnOff())
-      channel1.gestVolUpDown();
-    
-    debug_print();
+    if (Serial.available()) {
+        Serial.read();
+        connectionStarted = true; 
+    }
+
+    if (connectionStarted) {
+        channel1.addNewTimedReading(millis());
+        channel1.gestVolUpDown();   
+        debug_print();
+    }
 }
 
 
@@ -76,24 +79,22 @@ void print2serial(String _name, long _value) {
 
 
 void debug_print() {
-  Serial.print(int(channel1.masterVolume));
 //  Serial.print(int(channel1.masterVolume), BYTE);
 
-  Serial.print(" millis ");
+//  Serial.print(" ");
   Serial.print(channel1.timeStamps[0]);
-  Serial.print(" - ");
+  Serial.print(" ");  
+  Serial.print(int(channel1.masterVolume));
 //  Serial.print(": ");
-//  print2serial("raw ", channel1.newReading);
-
-  print2serial("adjusted ", channel1.rawReadings[0]);
-
-//  print2serial("avg readings ", channel1.avgReadings[0]);  
+//  print2serial(" raw ", channel1.newReading);
+  print2serial(" - adjusted ", channel1.rawReadings[0]);
+  print2serial(" - avg readings ", channel1.avgReadings[0]);  
 //  print2serial("center ", channel1.gestVolUpDown_Center);
-//  print2serial("shift ", channel1.gestVolUpDown_Shift);
+  print2serial(" - shift ", channel1.gestVolUpDown_Shift);
 //  print2serial("start ", channel1.gestOn);
 //  print2serial("stop ", channel1.gestOff);
-
   Serial.println();
+//  delay(25);
 }
 
 

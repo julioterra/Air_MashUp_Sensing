@@ -1,12 +1,33 @@
-void addNewTime(unsigned long newReading) {
+
+mixerChannel::mixerChannel(int _channelPin, String _channelName) {
+    gestOnOff_LastTime = millis(); 
+    gestOn = false;
+    gestOff = false;
+    gestVolUpDown_Center = 0;
+    gestVolUpDown_Shift = 0;
+    channelPin = _channelPin;
+    newReading = 0;
+    masterVolume = 0;
+   for (int i = 0; i < READINGS_ARRAY_SIZE; i++) rawReadings[i] = 0;
+ 
+ }
+
+void mixerChannel::addNewTime(unsigned long newReading) {
   for(int i = READINGS_ARRAY_SIZE-1; i > 0; i--) { timeStamps[i] = timeStamps[i-1]; }
   timeStamps[0] = newReading;
 }
 
+void mixerChannel::addNewTimedReading(unsigned long newTime) {
+    addNewTime(newTime);
+    addNewReading();
+}
 
-void addNewReading(int newReading) {
+
+void mixerChannel::addNewReading() {
   int avgSum = 0;
   int validAvgReadings = 0;
+
+  newReading = analogRead(channelPin);
 
   // move values back in array by one position
   for(int i = READINGS_ARRAY_SIZE-1; i > 0; i--) { rawReadings[i] = rawReadings[i-1]; }

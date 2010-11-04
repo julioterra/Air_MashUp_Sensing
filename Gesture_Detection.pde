@@ -9,33 +9,44 @@ boolean mixerChannel::gestOnOff() {
       
       // check that an on and off gesture has not been recorded recently within the pause timeframe
       if (millis() - gestOnOff_LastTime > gestOnOff_PauseInterval) {
-          int lookback = 8;
           int counterMin = 4;
-          
+          int lookback = READINGS_ARRAY_SIZE - 1;
+
           if (rawReadings[0] > 0 && rawReadings[1] > 0 && rawReadings[lookback] > 0) {
               int fullDelta = rawReadings[0] - rawReadings[lookback];
               if(fullDelta > gestOnOff_FullDelta || fullDelta < (gestOnOff_FullDelta * -1)) {
                   for (int j = 0; j < lookback; j++) { 
-                      int gradientDelta = 0;
-                      if(rawReadings[j] > 0 && rawReadings[j+1] > 0) { 
-                          gradientDelta = rawReadings[j] - rawReadings[j+1];
-                          if(fullDelta > 0) {
-                              if (gradientDelta > 0 && gradientDelta < gestOnOff_GradientDelta) { onCounter++; } 
-                              else { break; }
-                          } else if(fullDelta < 0) {
-                              if (gradientDelta < 0 && gradientDelta > (gestOnOff_GradientDelta * -1)) { offCounter++; } 
-                              else { break; }
-                          } 
-                      }
+                     int gradientDelta = 0;
+                     int offsetCheck = j + 1;
+                  
+                     if (rawReadings[offsetCheck] < 0) {
+                         for(offsetCheck; offsetCheck <= lookback; offsetCheck++) {
+                             if (offsetCheck == lookback) return false;
+                             else if (rawReadings[offsetCheck] > 0) break;
+                         }
+                     }
+                     
+                     if(rawReadings[j] > 0) { 
+                         if(rawReadings[j] > 0 && rawReadings[offsetCheck] > 0) { 
+                             gradientDelta = rawReadings[j] - rawReadings[offsetCheck];
+                             if(fullDelta > 0) {
+                                  if (gradientDelta > 0 && gradientDelta < gestOnOff_GradientDelta) { onCounter++; } 
+                                  else { break; }
+                              } else if(fullDelta < 0) {
+                                  if (gradientDelta < 0 && gradientDelta > (gestOnOff_GradientDelta * -1)) { offCounter++; } 
+                                  else { break; }
+                              } 
+                         }
+                     }
                   }
               } 
           }
-
 
       if (onCounter > counterMin) { 
         gestOn = true; 
         masterVolume = TOP_VOLUME;
         gestOnOff_LastTime = millis();
+        Serial.println("Go Up!");
         return false;
       }
       
@@ -43,6 +54,7 @@ boolean mixerChannel::gestOnOff() {
         gestOff = true; 
         masterVolume = 0;
         gestOnOff_LastTime = millis();
+        Serial.println("Go Down!");
         return false;
       }
       return true;
@@ -51,15 +63,16 @@ boolean mixerChannel::gestOnOff() {
 }
 
 
-int mixerChannel::readingsInSequenceTime(long _timeInterval) {
-    int counter;
-    for (int i = 0; i < READINGS_ARRAY_SIZE; i++) { 
-        if(timeStamps[0]-timeStamps[i] < _timeInterval) { counter++; }
-        else { break; }
-    }
-    return counter;
-}
 
+//int mixerChannel::readingsInSequenceTime(long _timeInterval) {
+//    int counter;
+//    for (int i = 0; i < READINGS_ARRAY_SIZE; i++) { 
+//        if(timeStamps[0]-timeStamps[i] < _timeInterval) { counter++; }
+//        else { break; }
+//    }
+//    return counter;
+//}
+//
 
 void mixerChannel::gestVolUpDown() {
     if (gestOnOff()) {
@@ -75,6 +88,7 @@ void mixerChannel::gestVolUpDown() {
                   gestVolUpDown_Center += gestVolUpDown_Shift; 
             } else {
                   gestVolUpDown_Shift = 0;
+                  
             }
         } else {
             gestVolUpDown_Center = -1;   
@@ -85,8 +99,9 @@ void mixerChannel::gestVolUpDown() {
 }
 
 
+
 void mixerChannel::changeVolume(float _volChange) {
-    masterVolume += (_volChange / 600.0) * TOP_VOLUME;
+    masterVolume += (_volChange / 500.0) * TOP_VOLUME;
     if (masterVolume > TOP_VOLUME) masterVolume = TOP_VOLUME;
     else if (masterVolume < 0) masterVolume = 0;
 }

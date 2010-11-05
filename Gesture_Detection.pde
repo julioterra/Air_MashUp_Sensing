@@ -1,5 +1,7 @@
-// Function that identifies gestures to turn on and off the sound of channel
-// returns false if it is paused (due to a gesture having recently been captured)
+// *********************************
+// GESTURE ON AND OFF 
+// Function that identifies gestures that turn on and off the sound of channel
+// returns false it has captured an on or off gesture within the pause interval
 boolean mixerChannel::gestOnOff() {
       int timeCounter = 0;    // counter that identifies how many readings fit within the gesture interval time
       int onCounter = 0;      // counter that identifies how many readings support an on gesture
@@ -15,29 +17,35 @@ boolean mixerChannel::gestOnOff() {
           if (rawReadings[0] > 0 && rawReadings[1] > 0 && rawReadings[lookback] > 0) {
               int fullDelta = rawReadings[0] - rawReadings[lookback];
               if(fullDelta > gestOnOff_FullDelta || fullDelta < (gestOnOff_FullDelta * -1)) {
-                  for (int j = 0; j < lookback; j++) { 
-                     int gradientDelta = 0;
-                     int offsetCheck = j + 1;
+
+                  int noiseThreshold = 2;      // the maximum number of out of order readings for the on/off gesture
+                  int noiseCount = 0;          // the current count of out of order readings for the on/off gesture
                   
-                     if (rawReadings[offsetCheck] < 0) {
-                         for(offsetCheck; offsetCheck <= lookback; offsetCheck++) {
-                             if (offsetCheck == lookback) return false;
-                             else if (rawReadings[offsetCheck] > 0) break;
-                         }
-                     }
-                     
-                     if(rawReadings[j] > 0) { 
-                         if(rawReadings[j] > 0 && rawReadings[offsetCheck] > 0) { 
-                             gradientDelta = rawReadings[j] - rawReadings[offsetCheck];
-                             if(fullDelta > 0) {
-                                  if (gradientDelta > 0 && gradientDelta < gestOnOff_GradientDelta) { onCounter++; } 
-                                  else { break; }
-                              } else if(fullDelta < 0) {
-                                  if (gradientDelta < 0 && gradientDelta > (gestOnOff_GradientDelta * -1)) { offCounter++; } 
-                                  else { break; }
-                              } 
-                         }
-                     }
+                  for (int j = 0; j < lookback; j++) { 
+                       int gradientDelta = 0;
+                       int offsetCheck = j + 1;
+                    
+                       if (rawReadings[offsetCheck] <= 0) {
+                           for(offsetCheck; offsetCheck <= lookback; offsetCheck++) {
+                               if (offsetCheck == lookback) return false;
+                               else if (rawReadings[offsetCheck] >= 0) break;
+                           }
+                       }
+                       
+                       if(rawReadings[j] >= 0) { 
+                           if(rawReadings[j] > 0 && rawReadings[offsetCheck] >= 0) { 
+                               gradientDelta = rawReadings[j] - rawReadings[offsetCheck];
+                               if(fullDelta > 0) {
+                                    if (gradientDelta >= 0 && gradientDelta < gestOnOff_GradientDelta) { onCounter++; } 
+                                    else { noiseCount++; }
+
+                                } else if(fullDelta < 0) {
+                                    if (gradientDelta <= 0 && gradientDelta > (gestOnOff_GradientDelta * -1)) { offCounter++; } 
+                                    else { noiseCount++; }
+                                }
+                                if (noiseCount > noiseThreshold) break;  
+                           }
+                       }
                   }
               } 
           }
@@ -46,7 +54,7 @@ boolean mixerChannel::gestOnOff() {
         gestOn = true; 
         masterVolume = TOP_VOLUME;
         gestOnOff_LastTime = millis();
-        Serial.println("Go Up!");
+//        Serial.println("Go Up!");
         return false;
       }
       
@@ -54,13 +62,15 @@ boolean mixerChannel::gestOnOff() {
         gestOff = true; 
         masterVolume = 0;
         gestOnOff_LastTime = millis();
-        Serial.println("Go Down!");
+//        Serial.println("Go Down!");
         return false;
       }
       return true;
       } 
       return false; 
 }
+// END - GESTURE ON AND OFF 
+// *********************************
 
 
 

@@ -115,3 +115,10 @@ void mixerChannel::changeVolume(float _volChange) {
     if (masterVolume > TOP_VOLUME) masterVolume = TOP_VOLUME;
     else if (masterVolume < 0) masterVolume = 0;
 }
+
+void mixerChannel::controlLaser(int pinNumber, boolean laserOn) {
+   pinMode(pinNumber, OUTPUT);
+   if (laserOn) digitalWrite(pinNumber, HIGH); 
+   else digitalWrite(pinNumber, LOW); 
+  
+}

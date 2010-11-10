@@ -1,19 +1,21 @@
 //#include <MIDI.h>
 
-        #define READINGS_ARRAY_SIZE          10
-        #define AVERAGE_READING_BUFFER_SIZE  10
+        #define READINGS_ARRAY_SIZE          12
+        #define AVERAGE_READING_BUFFER_SIZE  6
+        #define PRE_READING_BUFFER_SIZE      6
 
-        #define SENSOR_MIN                   110
+        #define SENSOR_MIN                   125
         #define SENSOR_MAX                   520
-        #define TOP_VOLUME                  127
+        #define TOP_VOLUME                   127
 
-        #define gestOnOff_SequenceTime      300
-        #define gestOnOff_FullDelta         220
-        #define gestOnOff_GradientDelta     150
-        #define gestOnOff_PauseInterval     450
+        #define gestOnOff_SequenceTime       300
+        #define gestOnOff_FullDelta          160
+        #define gestOnOff_GradientDelta      110
+        #define gestOnOff_PauseInterval      450
         
-        #define gestVolUpDown_Bandwidth     20
-        #define gestVolUpDown_IgnoreRange   120
+        #define gestVolUpDown_Bandwidth      30
+        #define gestVolUpDown_IgnoreRange    120
+        #define gestVolUpDown_GradientDelta  60
         
 
 
@@ -22,11 +24,14 @@ class mixerChannel {
         unsigned long timeStamps[READINGS_ARRAY_SIZE];
         int rawReadings[READINGS_ARRAY_SIZE];
         int avgReadings[READINGS_ARRAY_SIZE];
+        int preBuffer[PRE_READING_BUFFER_SIZE];
+        int transferBuffer[PRE_READING_BUFFER_SIZE];
         int avgBuffer[AVERAGE_READING_BUFFER_SIZE];
+        int rawReading;
+        int newReading;
 
         int sensorRange;
         int channelPin;
-        int newReading;
         boolean handActive;
         boolean handStatusChange;
         float masterVolume;
@@ -45,11 +50,11 @@ class mixerChannel {
         void gestVolUpDown();
         void addNewTimedReading(unsigned long); 
         void changeVolume(float);
+        void controlLaser(int, boolean);
       
     private: 
         void addNewReading();
         void addNewTime(unsigned long);
-//        int readingsInSequenceTime(long);
         boolean recursiveCheck(int, int**, int**, int, int, int);
   
 };
@@ -68,6 +73,7 @@ boolean connectionStarted = false;
 
 void setup() {
   Serial.begin(9600); 
+  channel1.controlLaser(3, true);
 }
 
 
@@ -76,10 +82,11 @@ void loop() {
         Serial.read();
         connectionStarted = true; 
     }
-
+    
+    unsigned long currentTime = millis();
     if (connectionStarted) {
-        channel1.addNewTimedReading(millis());
-        channel2.addNewTimedReading(millis());
+        channel1.addNewTimedReading(currentTime);
+        channel2.addNewTimedReading(currentTime);
         channel1.gestVolUpDown();   
         channel2.gestVolUpDown();   
         debug_print();
@@ -100,22 +107,18 @@ void debug_print() {
 //  Serial.print(int(channel1.masterVolume), BYTE);
 
 //  Serial.print(" ");
-  Serial.print("Sensor 1 ");  
+//  Serial.print("Sensor 1 ");  
   Serial.print(channel1.timeStamps[0]);
-  Serial.print(" - ");  
-  Serial.print(int(channel1.masterVolume));
-  print2serial(" - adjusted ", channel1.rawReadings[0]);
-  //  print2serial(" - raw ", channel1.newReading);
-
-
-
   Serial.print(" ");  
-  Serial.print("Sensor 2 ");  
-  Serial.print(" - ");  
+  Serial.print(int(channel1.masterVolume));
+  Serial.print(" ");  
   Serial.print(int(channel2.masterVolume));
-  print2serial(" - adjusted ", channel2.rawReadings[0]);
-  //  print2serial(" - raw ", channel2.newReading);
-
+//  Serial.print(" ");  
+//  Serial.print(int(channel1.rawReadings[0]));
+//  Serial.print(int(channel1.masterVolume));
+//  print2serial(" - adjusted ", channel1.rawReadings[0]);
+//  print2serial(" - prebuffer ", channel1.preBuffer[PRE_READING_BUFFER_SIZE-1]);
+//  print2serial(" - raw ", channel1.newReading);
   Serial.println();
 
 //  Serial.print(": ");

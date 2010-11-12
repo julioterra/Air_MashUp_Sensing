@@ -9,15 +9,16 @@
         #define TOP_VOLUME                   127
 
         #define gestOnOff_SequenceTime       300
-        #define gestOnOff_FullDelta          160
+        #define gestOnOff_FullDelta          180
         #define gestOnOff_GradientDelta      110
         #define gestOnOff_PauseInterval      450
         
-        #define gestVolUpDown_Bandwidth      30
-        #define gestVolUpDown_IgnoreRange    120
-        #define gestVolUpDown_GradientDelta  60
+        #define gestUpDown_Bandwidth      30
+        #define gestUpDown_IgnoreRange    60
         
-
+        #define UP                           1
+        #define DOWN                         -1
+        #define STOPPED                      0
 
 class mixerChannel {
     public:
@@ -32,9 +33,12 @@ class mixerChannel {
 
         int sensorRange;
         int channelPin;
+        float masterVolume;
+
         boolean handActive;
         boolean handStatusChange;
-        float masterVolume;
+        int handIntention;
+        int handIntentionPrevious;
 
         // Sudden Volume On/Off
         unsigned long gestOnOff_LastTime;
@@ -42,17 +46,20 @@ class mixerChannel {
         boolean gestOff;
         
         // Smooth Volume Up/Down
-        int gestVolUpDown_Center;
-        int gestVolUpDown_Shift;
+        int gestUpDown_Center;
+        int gestUpDown_Shift;
 
         mixerChannel(int, String);
-        boolean gestOnOff();
-        void gestVolUpDown();
-        void addNewTimedReading(unsigned long); 
+        void addTimedReading(unsigned long); 
         void changeVolume(float);
         void controlLaser(int, boolean);
+        void gestCapture();
+        void printMIDIVolume();
+        void printTimestamp();
       
     private: 
+        boolean gestOnOff();
+        void gestUpDown();
         void addNewReading();
         void addNewTime(unsigned long);
         boolean recursiveCheck(int, int**, int**, int, int, int);
@@ -60,16 +67,10 @@ class mixerChannel {
 };
 
 
-// SMOOTH VOLUME LOGIC
-// the center variable holds the current center of the volume range
-// the bandwidth determines how far up or down the readings need to go in order to move the volume up or down
-// the ignore range helps reduce noise by ignoring any large sudden jumps in the sensor readings
-
 boolean connectionStarted = false;
  mixerChannel channel1 = mixerChannel(1, "ch1");
  mixerChannel channel2 = mixerChannel(2, "ch2");
-// mixerChannel channel3 = mixerChannel(3, "ch2");
-// mixerChannel channel4 = mixerChannel(4, "ch2");
+
 
 void setup() {
   Serial.begin(9600); 
@@ -85,12 +86,11 @@ void loop() {
     
     unsigned long currentTime = millis();
     if (connectionStarted) {
-        channel1.addNewTimedReading(currentTime);
-        channel2.addNewTimedReading(currentTime);
-        channel1.gestVolUpDown();   
-        channel2.gestVolUpDown();   
-        debug_print();
-//        debug_print2();
+        channel1.addTimedReading(currentTime);
+        channel2.addTimedReading(currentTime);
+        channel1.gestCapture();   
+        channel2.gestCapture();   
+        sendSerialData();
     }
 }
 
@@ -103,38 +103,13 @@ void print2serial(String _name, long _value) {
 }
 
 
-void debug_print() {
-//  Serial.print(int(channel1.masterVolume), BYTE);
-
-//  Serial.print(" ");
-//  Serial.print("Sensor 1 ");  
+void sendSerialData() {
   Serial.print(channel1.timeStamps[0]);
   Serial.print(" ");  
-  Serial.print(int(channel1.masterVolume));
-  Serial.print(" ");  
-  Serial.print(int(channel2.masterVolume));
-//  Serial.print(" ");  
-//  Serial.print(int(channel1.rawReadings[0]));
-//  Serial.print(int(channel1.masterVolume));
-//  print2serial(" - adjusted ", channel1.rawReadings[0]);
-//  print2serial(" - prebuffer ", channel1.preBuffer[PRE_READING_BUFFER_SIZE-1]);
-//  print2serial(" - raw ", channel1.newReading);
+  channel1.printMIDIVolume();
+  channel2.printMIDIVolume();
   Serial.println();
 
-//  Serial.print(": ");
-//  Serial.print("Sensor 1 ");  
-//  Serial.print("Sensor 2 ");  
-
-//  Serial.print("Sensor 1 ");  
-//  print2serial(" - avg readings ", channel1.avgReadings[0]); 
-//  Serial.print("Sensor 2 ");  
-//  print2serial(" - avg readings ", channel2.avgReadings[0]);  
-
-//  print2serial("center ", channel1.gestVolUpDown_Center);
-//  print2serial(" - shift ", channel1.gestVolUpDown_Shift);
-//  print2serial("start ", channel1.gestOn);
-//  print2serial("stop ", channel1.gestOff);
-//  delay(25);
 }
 
 

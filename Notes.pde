@@ -21,6 +21,12 @@
  * - get samples from youtube and other pop culture references for your set
  *
  *
- * Notes about how gestures are being tracked:
+ * NOTES ABOUT GESTURE CODE:
  * - look for gestures that 
+ *
+ * Gestures: Volume On and Off
+ *   - the center variable holds the current center spot of the volume range
+ *   - the bandwidth determines how far up or down the readings need to go in order to move the volume up or down
+ *   - the ignore range helps reduce noise by ignoring any large sudden jumps in the sensor readings
+ *
  ********************************************************/

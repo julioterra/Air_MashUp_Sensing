@@ -3,28 +3,34 @@
 mixerChannel::mixerChannel(int _channelPin, String _channelName) {
     channelPin = _channelPin;
     masterVolume = 0;
+
     handActive = false;
     handStatusChange = false;
+    handIntention = STOPPED;
+    handIntentionPrevious = handIntention;
+
     newReading = 0;
     sensorRange = SENSOR_MAX - SENSOR_MIN;
+
     gestOnOff_LastTime = millis(); 
     gestOn = false;
     gestOff = false;
-    gestVolUpDown_Center = 0;
-    gestVolUpDown_Shift = 0;
+    gestUpDown_Center = 0;
+    gestUpDown_Shift = 0;
+
     for (int i = 0; i < READINGS_ARRAY_SIZE; i++) rawReadings[i] = 0;
     for (int i = 0; i < PRE_READING_BUFFER_SIZE; i++) {
         preBuffer[i] = -1;
         transferBuffer[i] = -1;
-    }
-    
- }
-// *** END CONSTRUCTOR
+    }   
+ } // *** END CONSTRUCTOR *** //
 
-void mixerChannel::addNewTimedReading(unsigned long newTime) {
+
+void mixerChannel::addTimedReading(unsigned long newTime) {
     addNewTime(newTime);
     addNewReading();
 }
+
 
 void mixerChannel::addNewTime(unsigned long newReading) {
   for(int i = READINGS_ARRAY_SIZE-1; i > 0; i--) { timeStamps[i] = timeStamps[i-1]; }
@@ -41,6 +47,7 @@ void mixerChannel::addNewReading() {
     // read new data value from sensor
     rawReading = analogRead(channelPin);
   
+    // ****** PREPARE BUFFER AND READING ARRAYS ****** //   
     // prepare to add new value to arrays - move values back in array by one position, starting at the end of the array and moving to the beginning
     for(int i = READINGS_ARRAY_SIZE-1; i > 0; i--) { 
         rawReadings[i] = rawReadings[i-1]; 
@@ -48,12 +55,14 @@ void mixerChannel::addNewReading() {
     }
     for(int k = AVERAGE_READING_BUFFER_SIZE-1; k > 0; k--) { avgBuffer[k] = avgBuffer[k-1]; }
     for(int j = PRE_READING_BUFFER_SIZE-1; j > 0; j--) { preBuffer[j] = preBuffer[j-1]; }
-  
+
+    // ****** CHECK READING IS WITHIN RANGE AND MAP VALUE ACCORDINGLY ****** //   
     // adjust the value by checking if it is within acceptable range, and adjusting value
     if (rawReading > SENSOR_MIN && rawReading < SENSOR_MAX) { preBuffer[0] = sensorRange - (rawReading - SENSOR_MIN); }
     else if (rawReading < SENSOR_MIN) { preBuffer[0] = -1; }
     else if (rawReading > SENSOR_MAX) { preBuffer[0] = 0; }
     
+    // ****** CHECK HAND ACTIVE STATUS ****** // 
     // check if the hand status has changed
     int handActiveCounter = 0;
     for(int i = 0; i < PRE_READING_BUFFER_SIZE-2; i++) {
@@ -68,25 +77,34 @@ void mixerChannel::addNewReading() {
         handStatusChange = true;
     }
 
+    // ****** REMOVE NOISE FROM READINGS ****** // 
+    // if the hand status has changed then clean out noise from readings
     if(handStatusChange == true) {
         for(int i = 0; i < PRE_READING_BUFFER_SIZE; i++) { preBuffer[i] = -1; }
         handStatusChange = false;
     } 
     
+    // clean out noise from avgBuffer (only add readings that do not jump more than delta limit)
     rawReadings[0] = preBuffer[PRE_READING_BUFFER_SIZE-1];
-    if (!(abs(rawReadings[0]-rawReadings[1]) > gestVolUpDown_GradientDelta)) avgBuffer[0] = rawReadings[0];
+    if (!(abs(rawReadings[0]-rawReadings[1]) > gestUpDown_IgnoreRange)) avgBuffer[0] = rawReadings[0];
 
 
-    
-    // calculate the average readings for the average array
+    // ****** CALCULATE VALUES FOR SMOOTH VOLUME INCREASE/DECREASE ****** // 
+    // calculate the average readings for the volume up and down gesture
     for(int l = 0; l < AVERAGE_READING_BUFFER_SIZE; l++) { 
        if (avgBuffer[l] > 0) {
             avgSum = avgBuffer[l] + avgSum;
             validAvgReadings++;
         }
     }
+    // if there are more than 2 valid readings then add the new averaged reading to the avgReadings array
     if (validAvgReadings > AVERAGE_READING_BUFFER_SIZE/3) avgReadings[0] = avgSum / validAvgReadings;
     else avgReadings[0] = -1;
+} // *** END NEW READING FUNCTION ***
+
+
+void mixerChannel::printMIDIVolume() {
+  Serial.print(int(masterVolume));
+  Serial.print(" ");  
 }
-// *** END NEW READING FUNCTION ***
 

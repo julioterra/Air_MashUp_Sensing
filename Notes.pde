@@ -20,6 +20,16 @@
  * Music Ideas
  * - get samples from youtube and other pop culture references for your set
  *
+ * BPM Ideas
+ * Inputs
+ * - proximity sensor
+ * - [optional] switch - direct or accept 
+ * - [optional] potentiometer - speed of tempo change after accept
+ * - [optional] button to accept the bpm
+ * Outputs
+ * - led that beats to current bpm
+ * - led that beats to new tempo
+ *
  *
  * NOTES ABOUT GESTURE CODE:
  * - look for gestures that 

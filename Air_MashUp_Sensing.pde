@@ -1,6 +1,6 @@
 //#include <MIDI.h>
 
-        #define READINGS_ARRAY_SIZE          12
+        #define READINGS_ARRAY_SIZE          8
         #define AVERAGE_READING_BUFFER_SIZE  6
         #define PRE_READING_BUFFER_SIZE      6
 
@@ -10,18 +10,21 @@
 
         #define gestOnOff_SequenceTime       300
         #define gestOnOff_FullDelta          180
-        #define gestOnOff_GradientDelta      110
+        #define gestOnOff_GradientDelta      120
         #define gestOnOff_PauseInterval      450
         
-        #define gestUpDown_Bandwidth      30
-        #define gestUpDown_IgnoreRange    60
+        #define gestUpDown_Bandwidth         30
+        #define gestUpDown_IgnoreRange       60
         
         #define UP                           1
-        #define DOWN                         -1
+        #define DOWN                        -1
         #define STOPPED                      0
-
+        #define GEST_ON                      1
+        #define GEST_OFF                    -1
+        
 class mixerChannel {
     public:
+        // data capture and processing variables
         unsigned long timeStamps[READINGS_ARRAY_SIZE];
         int rawReadings[READINGS_ARRAY_SIZE];
         int avgReadings[READINGS_ARRAY_SIZE];
@@ -35,31 +38,33 @@ class mixerChannel {
         int channelPin;
         float masterVolume;
 
+        // hand sensing variables
         boolean handActive;
         boolean handStatusChange;
         int handIntention;
         int handIntentionPrevious;
 
-        // Sudden Volume On/Off
+        // On/Off Gesture
         unsigned long gestOnOff_LastTime;
         boolean gestOn;
         boolean gestOff;
         
-        // Smooth Volume Up/Down
+        // Up/Down Gesture
         int gestUpDown_Center;
         int gestUpDown_Shift;
 
         mixerChannel(int, String);
         void addTimedReading(unsigned long); 
-        void changeVolume(float);
+        void updateVolumeMIDI();
         void controlLaser(int, boolean);
-        void gestCapture();
-        void printMIDIVolume();
         void printTimestamp();
+        void printMIDIVolume();
       
     private: 
-        boolean gestOnOff();
-        void gestUpDown();
+        void volumeUpDownMIDI();
+        boolean volumeOnOffMIDI();
+        int gestOnOff();
+        int gestUpDown();
         void addNewReading();
         void addNewTime(unsigned long);
         boolean recursiveCheck(int, int**, int**, int, int, int);
@@ -88,8 +93,8 @@ void loop() {
     if (connectionStarted) {
         channel1.addTimedReading(currentTime);
         channel2.addTimedReading(currentTime);
-        channel1.gestCapture();   
-        channel2.gestCapture();   
+        channel1.updateVolumeMIDI();   
+        channel2.updateVolumeMIDI();   
         sendSerialData();
     }
 }
@@ -107,7 +112,9 @@ void sendSerialData() {
   Serial.print(channel1.timeStamps[0]);
   Serial.print(" ");  
   channel1.printMIDIVolume();
-  channel2.printMIDIVolume();
+//  channel2.printMIDIVolume();
+  Serial.print(" raw readings ");
+  Serial.print(channel1.rawReadings[0]);
   Serial.println();
 
 }

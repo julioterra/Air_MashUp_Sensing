@@ -1,48 +1,13 @@
-// *** MIXER CHANNEL CONSTRUCTOR: initializes all of the variables of all mixer channel objects
-MixerElement::MixerElement(int _channelPin, String _channelName) {
-    channelPin = _channelPin;
-
-    masterVolume = 0;
-
-    // hand status related variables
-    handActive = false;
-    handStatusChange = false;
-    handIntention = STOPPED;
-    handIntentionPrevious = handIntention;
-
-    // data input related variables
-    newReading = 0;
-    sensorRange = SENSOR_MAX - SENSOR_MIN;
-    for (int i = 0; i < READINGS_ARRAY_SIZE; i++) rawReadings[i] = 0;
-    for (int i = 0; i < PRE_READING_BUFFER_SIZE; i++) {
-        preBuffer[i] = -1;
-        transferBuffer[i] = -1;
-    }   
-
-    // gesture capture related variables
-    gestOnOff_LastTime = millis(); 
-    gestOn = false;
-    gestOff = false;
-    gestUpDown_Center = 0;
-    gestUpDown_Shift = 0;
-
- } // *** END CONSTRUCTOR *** //
-
-
-MixerElement::MixerElement(int _channelPin, int _blinkPin, String _channelName) {
-    MixerElement(_channelPin, _channelName);
-    tapTempo = TapTempo();
-    tapTempo.setBpmPins(_blinkPin);
-
-}
-
-
+// *** ADD NEW TIMED READING ***
+// add new reading with a timestamp
 void MixerElement::addTimedReading(unsigned long newTime) {
     addNewTime(newTime);
     addNewReading();
 }
 
 
+// *** ADD NEW TIMESTAMP ***
+// add new timestamp into timestamp array
 void MixerElement::addNewTime(unsigned long newReading) {
   for(int i = READINGS_ARRAY_SIZE-1; i > 0; i--) { timeStamps[i] = timeStamps[i-1]; }
   timeStamps[0] = newReading;
@@ -56,7 +21,7 @@ void MixerElement::addNewReading() {
     int validAvgReadings = 0;
   
     // read new data value from sensor
-    rawReading = analogRead(channelPin);
+    rawReading = analogRead(mainPin);
   
     // ****** PREPARE BUFFER AND READING ARRAYS ****** //   
     // prepare to add new value to arrays - move values back in array by one position, starting at the end of the array and moving to the beginning
@@ -114,8 +79,4 @@ void MixerElement::addNewReading() {
 } // *** END NEW READING FUNCTION ***
 
 
-void MixerElement::printMIDIVolume() {
-  Serial.print(int(masterVolume));
-  Serial.print(" ");  
-}
 

@@ -27,20 +27,33 @@ boolean MixerElement::volumeOnOffMIDI(){
     return false; 
  }
 
+void MixerElement::printMIDIVolume() {
+  Serial.print(int(masterVolume));
+  Serial.print(" ");  
+}
 
 
 // ***** BPM FUNCTIONS *****//
 
+void MixerElement::captureTempo() {
+  gestUpDown();
+  tapTempo.catchTap(handIntention);
+  tapTempo.setTempo();
+  tapTempo.bpmBlink();
+}
 
+void MixerElement::printBPM() {
+  Serial.print(tapTempo.bpm);
+  Serial.print(" ");  
+}
 
 
 // ***** CONTROL LASER FUNCTIONS ***** //
 
 // function that enables the laser to be turned on and off
-void MixerElement::controlLaser(int pinNumber, boolean laserOn) {
-   pinMode(pinNumber, OUTPUT);
-   if (laserOn) digitalWrite(pinNumber, HIGH); 
-   else digitalWrite(pinNumber, LOW);  
+void MixerElement::controlLaser(boolean laserOn) {
+   if (laserOn) digitalWrite(laserPin, HIGH); 
+   else digitalWrite(laserPin, LOW);  
 }
 
 

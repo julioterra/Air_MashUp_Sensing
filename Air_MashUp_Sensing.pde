@@ -6,7 +6,7 @@ class TapTempo {
       #define bpm_max                  240
       #define bpm_min                  40
       #define bpm_led_on_time          70
-      #define debounce_interval        50
+      #define debounce_interval        120
       
       int blinkPin;                                        // holds pin assignment for bpm pin
 
@@ -20,7 +20,6 @@ class TapTempo {
       long avgTapInterval;                                 // average interval between beats (used to calculate bpm)
       int tapState;                                        // current state of the tap button or gesture
       int lastTapState;                                    // last tap button or gesture state 
-      float bpm;                                           // holds current beats per minute
 
       // variable for controling bpm light
       boolean lightOn;                                  // flag regarding current state of the bpm light
@@ -30,6 +29,8 @@ class TapTempo {
       void readData(int);                                  // function that processes the input data to make sure it is debounced  
 
     public:
+      float bpm;                                           // holds current beats per minute
+
       TapTempo();
       void setBpmPins(int);
       void catchTap(int);           
@@ -42,7 +43,7 @@ class TapTempo {
         
 class MixerElement {
     private: 
-        #define READINGS_ARRAY_SIZE          8
+        #define READINGS_ARRAY_SIZE          10
         #define AVERAGE_READING_BUFFER_SIZE  6
         #define PRE_READING_BUFFER_SIZE      6
 
@@ -51,15 +52,12 @@ class MixerElement {
         #define TOP_VOLUME                   127
 
         #define gestOnOff_SequenceTime       300
-        #define gestOnOff_FullDelta          180
+        #define gestOnOff_FullDelta          220
         #define gestOnOff_GradientDelta      120
         #define gestOnOff_PauseInterval      450
         
-        #define gestUpDown_Bandwidth         30
-        #define gestUpDown_IgnoreRange       60
-        
-        #define UP                           1
-        #define DOWN                         0
+        #define UP                           0
+        #define DOWN                         1
         #define STOPPED                     -1
         #define GEST_ON                      1
         #define GEST_OFF                     0
@@ -69,14 +67,15 @@ class MixerElement {
         #define bpm_min                      40
         #define bpm_led_on_time              70
 
+        int mainPin;
+        int laserPin;
+
         int sensorRange;
-        int channelPin;
         float masterVolume;
 
         // hand sensing variables
         boolean handActive;
         boolean handStatusChange;
-        int handIntention;
         int handIntentionPrevious;
 
         // On/Off Gesture
@@ -87,17 +86,17 @@ class MixerElement {
         // GEST_UP/Down Gesture
         int gestUpDown_Center;
         int gestUpDown_Shift;
+        int gestUpDown_Bandwidth;
+        int gestUpDown_IgnoreRange;
 
         void volumeUpDownMIDI();
         boolean volumeOnOffMIDI();
         int gestOnOff();
         int gestUpDown();
-        void addNewReading();
         void addNewTime(unsigned long);
         boolean recursiveCheck(int, int**, int**, int, int, int);
 
     public:
-
         // data capture and processing variables
         unsigned long timeStamps[READINGS_ARRAY_SIZE];
         int rawReadings[READINGS_ARRAY_SIZE];
@@ -108,6 +107,8 @@ class MixerElement {
         int rawReading;
         int newReading;
 
+        int handIntention;
+
         // bpm calculation object instance
         TapTempo tapTempo;
 
@@ -115,28 +116,28 @@ class MixerElement {
         void displayTempo();
         void setTempo();
 
-        MixerElement(int, String);
-        MixerElement(int, int, String);
+        MixerElement(int, int);
+        MixerElement(int, int, int);
         void addTimedReading(unsigned long); 
+        void addNewReading();
         void updateVolumeMIDI();
-        void controlLaser(int, boolean);
+        void controlLaser(boolean);
         void printTimestamp();
         void printMIDIVolume();
+        void printBPM();
         
 };
 
 
  boolean connectionStarted = false;
- MixerElement channel1 = MixerElement(1, "ch1");
- MixerElement channel2 = MixerElement(2, "ch2");
+ MixerElement channel1 = MixerElement(3, 1);
+ MixerElement channel2 = MixerElement(1, 3, 2);
 
 
-
-
-void setup() {
+void setup() {  
   Serial.begin(9600); 
-  channel1.controlLaser(2, true);
 }
+
 
 
 void loop() {
@@ -147,10 +148,10 @@ void loop() {
     
     unsigned long currentTime = millis();
     if (connectionStarted) {
-        channel1.addTimedReading(currentTime);
         channel2.addTimedReading(currentTime);
+        channel2.captureTempo();
+        channel1.addTimedReading(currentTime);
         channel1.updateVolumeMIDI();   
-        channel2.updateVolumeMIDI();   
         sendSerialData();
     }
 }
@@ -168,9 +169,11 @@ void sendSerialData() {
   Serial.print(channel1.timeStamps[0]);
   Serial.print(" ");  
   channel1.printMIDIVolume();
-  channel2.printMIDIVolume();
-//  Serial.print(" raw readings ");
-//  Serial.print(channel1.rawReadings[0]);
+  channel2.printBPM();
+//  Serial.print(" hand intention ");
+//  Serial.print(channel2.handIntention);
+//  Serial.print(" raw ");
+//  Serial.print(channel2.rawReadings[0]);
   Serial.println();
 
 }

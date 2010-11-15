@@ -1,5 +1,13 @@
 /*****************************************************
  * AIR MASH-UP APPLICATION NOTES
+ * created by Julio Terra 
+ *
+ * Project overview to come soon.
+ *
+ * Code licensed under creative commons.
+ *
+ * 
+ * NOTES REGARDING WORK IN PROGRESS
  * 
  * Planned Updates
  * - DONE - create a flag that identifies when a hand is added or removed from the sensor

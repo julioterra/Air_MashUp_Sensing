@@ -9,24 +9,6 @@
  * 
  *****/
 
-
-
-
-
-//void loop() {
-//    tapTempo.catchTap(digitalRead(TapPin));           
-//    tapTempo.setTempo();
-//    tapTempo.bpmBlink();
-//}
-
-
-
-
-void TapTempo::setBpmPins(int _bpmPin) {
-    blinkPin = _bpmPin;
-    pinMode(blinkPin, OUTPUT); 
-}
-
 TapTempo::TapTempo(){
   for (int i = timer_array_length - 1; i >= 0; i--) tapIntervals[i] = 0;       
 
@@ -41,6 +23,12 @@ TapTempo::TapTempo(){
   lightOn = false;
   lightOnTime = 0;
   previousLightOnTime = lightOnTime;
+}
+
+
+void TapTempo::setBpmPins(int _bpmPin) {
+    blinkPin = _bpmPin;
+    pinMode(blinkPin, OUTPUT); 
 }
 
 
@@ -79,13 +67,13 @@ void TapTempo::setTempo(){
             avgTapInterval = tempoSum / tempoCounter;              // calculate the average time in milliseconds between each tap
             bpm = float(60000)/float(avgTapInterval);                                   // calculate the bpm based on the millisecond averages
         }    
-        Serial.println(bpm);       // print the bpm to the screen
         newTap = false;
     }
 }
 
 void TapTempo::bpmBlink(){
-     // check if it is time to turn off the light by seeing if sufficient time has passed since light was turned on
+    pinMode(blinkPin, OUTPUT); 
+    // check if it is time to turn off the light by seeing if sufficient time has passed since light was turned on
     if (millis() > (lightOnTime + bpm_led_on_time)) {
         lightOnTime += avgTapInterval;
         lightOn = false;
@@ -99,6 +87,7 @@ void TapTempo::bpmBlink(){
       digitalWrite(blinkPin, LOW);
     }
     else if(millis() > lightOnTime) {
+ 
       digitalWrite(blinkPin, HIGH);
     }
 }

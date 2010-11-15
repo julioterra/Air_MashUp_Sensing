@@ -2,7 +2,7 @@
 // ***** GESTURE ON AND OFF ***** // 
 // Function that identifies gestures that turn on and off the sound of channel
 // returns false it has captured an on or off gesture within the pause interval
-int mixerChannel::gestOnOff() {
+int MixerElement::gestOnOff() {
       int timeCounter = 0;    // counter that identifies how many readings fit within the gesture interval time
       int onCounter = 0;      // counter that identifies how many readings support an on gesture
       int offCounter = 0;     // counter that identifies how many readings support an off gesture
@@ -62,7 +62,7 @@ int mixerChannel::gestOnOff() {
               masterVolume = TOP_VOLUME;
               gestOnOff_LastTime = millis();
               handIntention = UP;
-              return 1;
+              return GEST_ON;
           }
           
           if (offCounter > counterMin) { 
@@ -70,21 +70,22 @@ int mixerChannel::gestOnOff() {
               masterVolume = 0;
               gestOnOff_LastTime = millis();
               handIntention = DOWN;
-              return -1;
+              return GEST_OFF;
           }
-          return 0;
+          return STOPPED;
       } 
-      return 0; 
+      return STOPPED; 
 } // ****** END - GESTURE ON AND OFF ****** //
 
 
 
 // ***** GESTURE VOLUME UP AND DOWN ***** // 
-int mixerChannel::gestUpDown() {
+int MixerElement::gestUpDown() {
         if (avgReadings[0] > 0) {
             if (gestUpDown_Center == -1) { 
                   gestUpDown_Center = avgReadings[0];   
                   gestUpDown_Shift = 0;
+                  handIntention = STOPPED;                  
             } else if (avgReadings[0] > (gestUpDown_Center + gestUpDown_Bandwidth)) {
                   gestUpDown_Shift = avgReadings[0] - (gestUpDown_Center + gestUpDown_Bandwidth);
                   gestUpDown_Center += gestUpDown_Shift; 

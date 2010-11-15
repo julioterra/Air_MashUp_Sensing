@@ -1,38 +1,49 @@
-
 // *** MIXER CHANNEL CONSTRUCTOR: initializes all of the variables of all mixer channel objects
-mixerChannel::mixerChannel(int _channelPin, String _channelName) {
+MixerElement::MixerElement(int _channelPin, String _channelName) {
     channelPin = _channelPin;
+
     masterVolume = 0;
 
+    // hand status related variables
     handActive = false;
     handStatusChange = false;
     handIntention = STOPPED;
     handIntentionPrevious = handIntention;
 
+    // data input related variables
     newReading = 0;
     sensorRange = SENSOR_MAX - SENSOR_MIN;
+    for (int i = 0; i < READINGS_ARRAY_SIZE; i++) rawReadings[i] = 0;
+    for (int i = 0; i < PRE_READING_BUFFER_SIZE; i++) {
+        preBuffer[i] = -1;
+        transferBuffer[i] = -1;
+    }   
 
+    // gesture capture related variables
     gestOnOff_LastTime = millis(); 
     gestOn = false;
     gestOff = false;
     gestUpDown_Center = 0;
     gestUpDown_Shift = 0;
 
-    for (int i = 0; i < READINGS_ARRAY_SIZE; i++) rawReadings[i] = 0;
-    for (int i = 0; i < PRE_READING_BUFFER_SIZE; i++) {
-        preBuffer[i] = -1;
-        transferBuffer[i] = -1;
-    }   
  } // *** END CONSTRUCTOR *** //
 
 
-void mixerChannel::addTimedReading(unsigned long newTime) {
+MixerElement::MixerElement(int _channelPin, int _blinkPin, String _channelName) {
+    MixerElement(_channelPin, _channelName);
+    tapTempo = TapTempo();
+    tapTempo.setBpmPins(_blinkPin);
+
+}
+
+
+void MixerElement::addTimedReading(unsigned long newTime) {
     addNewTime(newTime);
     addNewReading();
 }
 
 
-void mixerChannel::addNewTime(unsigned long newReading) {
+void MixerElement::addNewTime(unsigned long newReading) {
   for(int i = READINGS_ARRAY_SIZE-1; i > 0; i--) { timeStamps[i] = timeStamps[i-1]; }
   timeStamps[0] = newReading;
 }
@@ -40,7 +51,7 @@ void mixerChannel::addNewTime(unsigned long newReading) {
 
 // *** ADD NEW READING FUNCTION ***
 // add new reading into the readings array
-void mixerChannel::addNewReading() {
+void MixerElement::addNewReading() {
     int avgSum = 0;
     int validAvgReadings = 0;
   
@@ -103,7 +114,7 @@ void mixerChannel::addNewReading() {
 } // *** END NEW READING FUNCTION ***
 
 
-void mixerChannel::printMIDIVolume() {
+void MixerElement::printMIDIVolume() {
   Serial.print(int(masterVolume));
   Serial.print(" ");  
 }

@@ -31,7 +31,7 @@ MixerElement::MixerElement(int _mainPin, int _laserPin) {
     // intialize VOLUME related variables
     masterVolume = 0;
     gestUpDown_Bandwidth = 40;
-    gestUpDown_IgnoreRange = 70;
+    gestUpDown_IgnoreRange = 80;
 
  } // *** END CONSTRUCTOR *** //
 
@@ -71,7 +71,7 @@ MixerElement::MixerElement(int _mainPin, int _laserPin, int _bpmBlinkPin) {
 
     // intialize VOLUME related variables
     masterVolume = 0;
-    gestUpDown_Bandwidth = 30;
+    gestUpDown_Bandwidth = 10;
     gestUpDown_IgnoreRange = 250;
 
 }

@@ -35,7 +35,7 @@ void MixerElement::printMIDIVolume() {
 
 // ***** BPM FUNCTIONS *****//
 
-void MixerElement::captureTempo() {
+void MixerElement::captureTempoTap() {
   gestUpDown();
   tapTempo.catchTap(handIntention);
   tapTempo.setTempo();

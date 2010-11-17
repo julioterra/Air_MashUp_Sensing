@@ -32,50 +32,105 @@ void MixerElement::addNewReading() {
     for(int k = AVERAGE_READING_BUFFER_SIZE-1; k > 0; k--) { avgBuffer[k] = avgBuffer[k-1]; }
     for(int j = PRE_READING_BUFFER_SIZE-1; j > 0; j--) { preBuffer[j] = preBuffer[j-1]; }
 
+
     // ****** CHECK READING IS WITHIN RANGE AND MAP VALUE ACCORDINGLY ****** //   
     // adjust the value by checking if it is within acceptable range, and adjusting value
     if (rawReading > SENSOR_MIN && rawReading < SENSOR_MAX) { preBuffer[0] = sensorRange - (rawReading - SENSOR_MIN); }
     else if (rawReading < SENSOR_MIN) { preBuffer[0] = -1; }
     else if (rawReading > SENSOR_MAX) { preBuffer[0] = 0; }
+
+
+    int reorderBuffer[PRE_READING_BUFFER_SIZE];
+    for(int j = PRE_READING_BUFFER_SIZE-1; j > 0; j--) { reorderBuffer[j] = -2; }
+
+    for(int i = 0; i < PRE_READING_BUFFER_SIZE; i++) {
+        int orderCounter = 0;
+        int repeatCounter = 0;
+        for(int j = 0; j < PRE_READING_BUFFER_SIZE; j++) {
+            if(preBuffer[i] < preBuffer[j]) orderCounter++;             
+            if(preBuffer[i] == preBuffer[j]) repeatCounter++;             
+        }    
+        if (repeatCounter == 1) { reorderBuffer[orderCounter] = preBuffer[i]; } 
+        else {
+          for(int k = 0; k < repeatCounter; k++) {
+                if(reorderBuffer[orderCounter + k] == -2) { reorderBuffer[orderCounter + k] = preBuffer[i]; }
+            }
+        }
+    }
+    
+    int newReading = reorderBuffer[PRE_READING_BUFFER_SIZE/2];
+
     
     // ****** CHECK HAND ACTIVE STATUS ****** // 
     // check if the hand status has changed
-    int handActiveCounter = 0;
-    for(int i = 0; i < PRE_READING_BUFFER_SIZE-2; i++) {
-        if(preBuffer[i] < 0) handActiveCounter--; 
-        else if(preBuffer[i] > 0) handActiveCounter++;       
-    }
-    if (handActiveCounter <= ((PRE_READING_BUFFER_SIZE-2)*-1) && handActive == true) {
+    if (newReading < 0 && handActive == true) {
         handActive = false;
         handStatusChange = true;
-    } else if (handActiveCounter >= (PRE_READING_BUFFER_SIZE-2) && handActive == false) {
+    } else if (newReading >= 0  && handActive == false) {
         handActive = true;
         handStatusChange = true;
     }
 
+
+    // ****** CALCULATE VALUES FOR SMOOTH VOLUME INCREASE/DECREASE ****** // 
+    // calculate the average readings for the volume up and down gesture
+    
+    avgReadings[0] = newReading;
+    rawReadings[0] = newReading;
+
+
+
     // ****** REMOVE NOISE FROM READINGS ****** // 
     // if the hand status has changed then clean out noise from readings
-    if(handStatusChange == true) {
-        for(int i = 0; i < PRE_READING_BUFFER_SIZE; i++) { preBuffer[i] = -1; }
-        handStatusChange = false;
-    } 
+//    if(handStatusChange == true) {
+//        for(int i = 0; i < PRE_READING_BUFFER_SIZE; i++) { preBuffer[i] = -1; }
+//        handStatusChange = false;
+//    } 
     
+        
+    // ****** CHECK HAND ACTIVE STATUS ****** // 
+    // check if the hand status has changed
+//    int handActiveCounter = 0;
+//    for(int i = 0; i < PRE_READING_BUFFER_SIZE-2; i++) {
+//        if(preBuffer[i] < 0) handActiveCounter--; 
+//        else if(preBuffer[i] > 0) handActiveCounter++;       
+//    }
+//    if (handActiveCounter <= ((PRE_READING_BUFFER_SIZE-2)*-1) && handActive == true) {
+//        handActive = false;
+//        handStatusChange = true;
+//    } else if (handActiveCounter >= (PRE_READING_BUFFER_SIZE-2) && handActive == false) {
+//        handActive = true;
+//        handStatusChange = true;
+//    }
+
+    // ****** REMOVE NOISE FROM READINGS ****** // 
+    // if the hand status has changed then clean out noise from readings
+//    if(handStatusChange == true) {
+//        for(int i = 0; i < PRE_READING_BUFFER_SIZE; i++) { preBuffer[i] = -1; }
+//        handStatusChange = false;
+//    } 
+    
+
+
     // clean out noise from avgBuffer (only add readings that do not jump more than delta limit)
-    rawReadings[0] = preBuffer[PRE_READING_BUFFER_SIZE-1];
-    if (!(abs(rawReadings[0]-rawReadings[1]) > gestUpDown_IgnoreRange)) avgBuffer[0] = rawReadings[0];
+//    rawReadings[0] = preBuffer[PRE_READING_BUFFER_SIZE-1];
+//    if (!(abs(rawReadings[0]-rawReadings[1]) > gestUpDown_IgnoreRange)) avgBuffer[0] = rawReadings[0];
 
 
     // ****** CALCULATE VALUES FOR SMOOTH VOLUME INCREASE/DECREASE ****** // 
     // calculate the average readings for the volume up and down gesture
-    for(int l = 0; l < AVERAGE_READING_BUFFER_SIZE; l++) { 
-       if (avgBuffer[l] > 0) {
-            avgSum = avgBuffer[l] + avgSum;
-            validAvgReadings++;
-        }
-    }
+    
+//    for(int l = 0; l < AVERAGE_READING_BUFFER_SIZE; l++) { 
+//       if (avgBuffer[l] > 0) {
+//            avgSum = avgBuffer[l] + avgSum;
+//            validAvgReadings++;
+//        }
+//    }
     // if there are more than 2 valid readings then add the new averaged reading to the avgReadings array
-    if (validAvgReadings > AVERAGE_READING_BUFFER_SIZE/3) avgReadings[0] = avgSum / validAvgReadings;
-    else avgReadings[0] = -1;
+//    if (validAvgReadings > AVERAGE_READING_BUFFER_SIZE/3) avgReadings[0] = avgSum / validAvgReadings;
+//    else avgReadings[0] = -1;
+
+
 } // *** END NEW READING FUNCTION ***
 
 

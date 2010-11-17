@@ -34,6 +34,7 @@ class TapTempo {
       TapTempo();
       void setBpmPins(int);
       void catchTap(int);           
+      void catchGe(int);
       void setTempo();
       void bpmBlink();
   
@@ -43,16 +44,16 @@ class TapTempo {
         
 class MixerElement {
     private: 
-        #define READINGS_ARRAY_SIZE          10
-        #define AVERAGE_READING_BUFFER_SIZE  6
-        #define PRE_READING_BUFFER_SIZE      6
+        #define READINGS_ARRAY_SIZE          6
+        #define AVERAGE_READING_BUFFER_SIZE  1
+        #define PRE_READING_BUFFER_SIZE      9    
 
         #define SENSOR_MIN                   125
         #define SENSOR_MAX                   520
         #define TOP_VOLUME                   127
 
         #define gestOnOff_SequenceTime       300
-        #define gestOnOff_FullDelta          220
+        #define gestOnOff_FullDelta          160
         #define gestOnOff_GradientDelta      120
         #define gestOnOff_PauseInterval      450
         
@@ -112,7 +113,8 @@ class MixerElement {
         // bpm calculation object instance
         TapTempo tapTempo;
 
-        void captureTempo();
+        void captureTempoTap();
+        void captureTempoGest();
         void displayTempo();
         void setTempo();
 
@@ -130,8 +132,9 @@ class MixerElement {
 
 
  boolean connectionStarted = false;
- MixerElement channel1 = MixerElement(3, 1);
- MixerElement channel2 = MixerElement(1, 3, 2);
+ MixerElement channel1 = MixerElement(1, 2);
+ MixerElement channel2 = MixerElement(2, 3);
+ MixerElement channel3 = MixerElement(3, 4, 5);
 
 
 void setup() {  
@@ -145,13 +148,17 @@ void loop() {
         Serial.read();
         connectionStarted = true; 
     }
-    
+
     unsigned long currentTime = millis();
     if (connectionStarted) {
-        channel2.addTimedReading(currentTime);
-        channel2.captureTempo();
         channel1.addTimedReading(currentTime);
+        channel2.addTimedReading(currentTime);
+//        channel3.addTimedReading(currentTime);
+
         channel1.updateVolumeMIDI();   
+        channel2.updateVolumeMIDI();   
+//        channel3.captureTempoTap();
+
         sendSerialData();
     }
 }
@@ -168,12 +175,23 @@ void print2serial(String _name, long _value) {
 void sendSerialData() {
   Serial.print(channel1.timeStamps[0]);
   Serial.print(" ");  
+//  Serial.print(" -  C1 ");
   channel1.printMIDIVolume();
-  channel2.printBPM();
+//  channel3.printBPM();
 //  Serial.print(" hand intention ");
 //  Serial.print(channel2.handIntention);
 //  Serial.print(" raw ");
+//  Serial.print(channel1.rawReadings[0]);
+//  Serial.print(" pre ");
+//  Serial.print(channel1.preBuffer[0]);
+
+//  Serial.print(" - C2: ");
+  channel2.printMIDIVolume();
+//  Serial.print(" raw ");
 //  Serial.print(channel2.rawReadings[0]);
+//  Serial.print(" pre ");
+//  Serial.print(channel2.preBuffer[0]);
+
   Serial.println();
 
 }

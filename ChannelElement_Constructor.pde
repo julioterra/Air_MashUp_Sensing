@@ -116,7 +116,20 @@ MixerElement::MixerElement(int _componentNumber, int _mainPin, int _bpmBlinkPin)
 
 }
 
+
+// Set Proximit Pin
 void MixerElement::setProximityPin(int _proxPin) {
       mainPin = _proxPin;
+      multiplexer = false;
+}
+
+// Set Proximit Pin
+void MixerElement::setMultiplexerProximityPin(int _proxPin, int _multiPin, int _multiControl) {
+      for (int i = 0; i < 3; i++) {
+         multiplexControlPin[i] = _multiControl + i;  
+      }
+      mainPin = _proxPin;
+      multiPin = _multiPin;
+      multiplexer = true;
 }
 

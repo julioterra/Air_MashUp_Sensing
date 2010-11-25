@@ -2,12 +2,6 @@ const int  multiplexPosition[3][8] = {0, 1, 0, 1, 0, 1, 0, 1,
                                       0, 0, 1, 1, 0, 0, 1, 1,
                                       0, 0, 0, 0, 1, 1, 1, 1};
 
-const int  multiplexPosition0[8] = {0, 1, 0, 1, 0, 1, 0, 1};
-const int  multiplexPosition1[8] = {0, 0, 1, 1, 0, 0, 1, 1};
-const int  multiplexPosition2[8] = {0, 0, 0, 0, 1, 1, 1, 1};
-
-int  bin [] = {000, 1, 10, 11, 100, 101, 110, 111};//bin = binï¿½r, some times it is so easy
-
 
 
 /**********************************
@@ -86,6 +80,9 @@ class MixerElement {
         int componentNumber;
         int mainPin;
         int laserPin;
+        int multiPin;
+        int multiplexControlPin[3];
+        boolean multiplexer;
 
         int sensorRange;
         float masterVolume;
@@ -138,6 +135,7 @@ class MixerElement {
         MixerElement(int, int);
         MixerElement(int, int, int);
         void setProximityPin(int);
+        void setMultiplexerProximityPin(int, int, int);
         void addTimedReading(); 
         void addNewReading();
         void updateVolumeMIDI();
@@ -154,7 +152,7 @@ class MixerElement {
  **********************************/
 class ControlPanel {
     public:
-        #define num_digital_sensors      7
+        #define num_digital_sensors      8
         #define num_analog_sensors       4
         #define num_digital_LEDs         5
 
@@ -166,7 +164,7 @@ class ControlPanel {
         #define crossA                   4
         #define crossB                   5
         #define volLock                  6
-        //#define buttonSelect           7
+        #define buttonSelect             7
         
         #define eqHigh                   0
         #define eqMid                    1
@@ -179,7 +177,7 @@ class ControlPanel {
         #define loopOnOffLED             3
         #define volLED                   4
         
-        #define smoothAnalogPotReading   10
+        #define smoothAnalogPotReading   6
 
         // component number
         int componentNumber;
@@ -245,12 +243,6 @@ void setup() {
     controlPanel.setAnalogInputPins (6, 1);
     controlPanel.setDigitalInputPins (2);
     controlPanel.setOutputPins (10, 9);
-
-//    controlPanel.setProximityPin(5);  
-//    controlPanel.setEqPins(4, 3, 2);  
-//    controlPanel.setLoopPins(6, 8, 5, 10);
-//    controlPanel.setVolPins(4, 3, 9, 2, 11, 12);  
-//    controlPanel.setSelectPins(1);
 }
 
 

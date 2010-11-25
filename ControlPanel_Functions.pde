@@ -5,8 +5,7 @@
 void ControlPanel::readData() {
     for (int i = 0; i < num_digital_sensors; i++) { readDigitalPin(i); }
     for (int j = 0; j < num_analog_sensors; j++) { readAnalogPin(j); }
-//    mixerElement.addTimedReading();
-//    mixerElement.updateVolumeMIDI();   
+    mixerElement.addTimedReading();
 }
 
 void ControlPanel::readDigitalPin(int index_number) { 
@@ -16,6 +15,17 @@ void ControlPanel::readDigitalPin(int index_number) {
         digitalWrite(digitalMultiplexControlPin[1], multiplexPosition[1][sensorDigitalPins[index_number]]); 
         digitalWrite(digitalMultiplexControlPin[2], multiplexPosition[2][sensorDigitalPins[index_number]]);
         int currentVal = digitalRead(digitalMultiplexPin);
+
+//        Serial.print(" pin position control ");
+//        Serial.print(digitalMultiplexControlPin[0]);
+//        Serial.print(digitalMultiplexControlPin[1]);
+//        Serial.print(digitalMultiplexControlPin[2]);
+//        Serial.print(" pin number on multiplex ");
+//        Serial.print(sensorDigitalPins[index_number]);
+//        Serial.print(" multiplex pin ");
+//        Serial.print(digitalMultiplexPin);
+//        Serial.print(" value ");
+//        Serial.println(currentVal);
 
         if (sensorDigitalCurVals[index_number] != currentVal) {
             sensorDigitalNewData[index_number] = true;
@@ -33,15 +43,6 @@ void ControlPanel::readAnalogPin(int index_number) {
         digitalWrite(analogMultiplexControlPin[2], multiplexPosition[2][sensorAnalogPins[index_number]]);
         int newVal = analogRead(analogMultiplexPin);
 
-//        Serial.print(" pin position control ");
-//        Serial.print(analogMultiplexControlPin[0]);
-//        Serial.print(analogMultiplexControlPin[1]);
-//        Serial.print(analogMultiplexControlPin[2]);
-//        Serial.print(" pin number on multiplex ");
-//        Serial.print(sensorAnalogPins[index_number]);
-//        Serial.print(" value ");
-//        Serial.println(newVal);
-
         int valSum = 0;
         for (int i = smoothAnalogPotReading - 1; i > 0; i--) {
             sensorAnalogPrevVals[index_number][i] = sensorAnalogPrevVals[index_number][i-1];          
@@ -49,7 +50,7 @@ void ControlPanel::readAnalogPin(int index_number) {
         }
         sensorAnalogPrevVals[index_number][0] = newVal;        
         int currentVal = (valSum + newVal) / smoothAnalogPotReading;
-        int offset = (float(sensorAnalogCurVals[index_number]) * 0.005) + 4;
+        int offset = (float(sensorAnalogCurVals[index_number]) * 0.01) + 10;
     
         if (currentVal < sensorAnalogCurVals[index_number] - offset || currentVal > sensorAnalogCurVals[index_number] + offset) {
             sensorAnalogNewData[index_number] = true;
@@ -66,7 +67,8 @@ void ControlPanel::readAnalogPin(int index_number) {
 void ControlPanel::outputSerialData () {
     for (int i = 0; i < num_digital_sensors; i++) { serialOutputDigital(i); }
     for (int j = 0; j < num_analog_sensors; j++) { serialOutputAnalog(j); }
-//    mixerElement.printMIDIVolume();
+    mixerElement.updateVolumeMIDI();   
+    mixerElement.printMIDIVolume();
 }
 
 void ControlPanel::serialOutputDigital(int sensor_index) {
@@ -112,7 +114,8 @@ void ControlPanel::setAnalogInputPins (int _analogMultiplexControlPin, int _anal
     sensorAnalogPins[eqMid] = 2;
     sensorAnalogPins[eqLow] = 4;
     sensorAnalogPins[rotarySelect] = 6;
-//    mixerElement.setProximityPin(1);
+
+    mixerElement.setMultiplexerProximityPin(1, _analogMultiplexPin, _analogMultiplexControlPin);
 }
 
 void ControlPanel::setDigitalInputPins (int _digitalMultiplexControlPin) {
@@ -125,13 +128,13 @@ void ControlPanel::setDigitalInputPins (int _digitalMultiplexControlPin) {
 
     sensorDigitalPins[loopBegin] = 0;
     sensorDigitalPins[loopEnd] = 2;
-    sensorDigitalPins[loopStartStop] = 4;
-    sensorDigitalPins[monitor] = 6;
+    sensorDigitalPins[loopStartStop] = 6;
+    sensorDigitalPins[monitor] = 4;
 
     sensorDigitalPins[crossA] = 1;
     sensorDigitalPins[crossB] = 3;
-    sensorDigitalPins[volLock] = 5;
-//    sensorDigitalPins[buttonSelect] = 7;
+    sensorDigitalPins[volLock] = 7;
+    sensorDigitalPins[buttonSelect] = 5;
 
 }
 

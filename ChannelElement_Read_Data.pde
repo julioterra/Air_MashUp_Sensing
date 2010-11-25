@@ -23,8 +23,14 @@ void MixerElement::addNewReading() {
     int validAvgReadings = 0;
   
     // read new data value from sensor
+    if (multiplexer) {
+        digitalWrite(multiplexControlPin[0], multiPin);
+        digitalWrite(multiplexControlPin[1], multiPin); 
+        digitalWrite(multiplexControlPin[2], multiPin);
+    }
     rawReading = analogRead(mainPin);
-  
+
+    
     // ****** PREPARE BUFFER AND READING ARRAYS ****** //   
     // prepare to add new value to arrays - move values back in array by one position, starting at the end of the array and moving to the beginning
     for(int i = READINGS_ARRAY_SIZE-1; i > 0; i--) { 

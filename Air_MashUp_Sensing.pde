@@ -1,6 +1,14 @@
-const int  multiplexPin1 [] = {0, 1, 0, 1, 0, 1, 0, 1};
-const int  multiplexPin2 [] = {0, 0, 1, 1, 0, 0, 1, 1};
-const int  multiplexPin3 [] = {0, 0, 0, 0, 1, 1, 1, 1};
+const int  multiplexPosition[3][8] = {0, 1, 0, 1, 0, 1, 0, 1,
+                                      0, 0, 1, 1, 0, 0, 1, 1,
+                                      0, 0, 0, 0, 1, 1, 1, 1};
+
+const int  multiplexPosition0[8] = {0, 1, 0, 1, 0, 1, 0, 1};
+const int  multiplexPosition1[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+const int  multiplexPosition2[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+
+int  bin [] = {000, 1, 10, 11, 100, 101, 110, 111};//bin = binï¿½r, some times it is so easy
+
+
 
 /**********************************
  * TEMPO TAP CLASS
@@ -178,6 +186,11 @@ class ControlPanel {
         
         MixerElement mixerElement;
 
+        int analogMultiplexControlPin[3];
+        int analogMultiplexPin;
+        int digitalMultiplexControlPin[3];
+        int digitalMultiplexPin;
+        
         // digital input pin array
         int sensorDigitalPins[num_digital_sensors];
         int sensorDigitalID[num_digital_sensors];
@@ -197,6 +210,9 @@ class ControlPanel {
         boolean LEDpwm[num_digital_LEDs];
         
         ControlPanel(int _componentNumber);
+        void setAnalogInputPins (int, int);    // first control pins, data collect pin
+        void setDigitalInputPins (int);        // first pin (both control and data collect are in sync)
+        void setOutputPins (int, int);         // first digital output pin, and pwm output pin
         void setProximityPin (int);
         void setEqPins (int, int, int);
         void setLoopPins (int, int, int, int/*, int*/);
@@ -208,15 +224,8 @@ class ControlPanel {
         void serialOutputDigital(int);
         void serialOutputAnalog(int);
         void outputSerialData ();
+        
 };
-
-
-
-
-
-
-
-
 
 
 /************************************
@@ -232,11 +241,16 @@ ControlPanel controlPanel = ControlPanel(2);
 
 void setup() {  
   Serial.begin(9600); 
-    controlPanel.setProximityPin(5);  
-    controlPanel.setEqPins(4, 3, 2);  
-    controlPanel.setLoopPins(6, 8, 5, 10);
-    controlPanel.setVolPins(4, 3, 9, 2, 11, 12);  
-    controlPanel.setSelectPins(1);
+  
+    controlPanel.setAnalogInputPins (6, 1);
+    controlPanel.setDigitalInputPins (2);
+    controlPanel.setOutputPins (10, 9);
+
+//    controlPanel.setProximityPin(5);  
+//    controlPanel.setEqPins(4, 3, 2);  
+//    controlPanel.setLoopPins(6, 8, 5, 10);
+//    controlPanel.setVolPins(4, 3, 9, 2, 11, 12);  
+//    controlPanel.setSelectPins(1);
 }
 
 
@@ -249,12 +263,6 @@ void loop() {
      
     unsigned long currentTime = millis();
     if (connectionStarted) {
-//        channel1.addTimedReading();
-//        channel2.addTimedReading();
-//        channel1.updateVolumeMIDI();   
-//        channel2.updateVolumeMIDI();  
-//        channel1.printMIDIVolume();
-//        channel2.printMIDIVolume();
          controlPanel.readData();
          controlPanel.outputSerialData();
     }

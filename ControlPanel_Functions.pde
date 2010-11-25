@@ -5,13 +5,18 @@
 void ControlPanel::readData() {
     for (int i = 0; i < num_digital_sensors; i++) { readDigitalPin(i); }
     for (int j = 0; j < num_analog_sensors; j++) { readAnalogPin(j); }
-    mixerElement.addTimedReading();
-    mixerElement.updateVolumeMIDI();   
+//    mixerElement.addTimedReading();
+//    mixerElement.updateVolumeMIDI();   
 }
 
 void ControlPanel::readDigitalPin(int index_number) { 
-    if (sensorDigitalPins[index_number] != -1) {
-        int currentVal = digitalRead(sensorDigitalPins[index_number]);
+   if (sensorDigitalPins[index_number] > -1) {
+
+        digitalWrite(digitalMultiplexControlPin[0], multiplexPosition[0][sensorDigitalPins[index_number]]);
+        digitalWrite(digitalMultiplexControlPin[1], multiplexPosition[1][sensorDigitalPins[index_number]]); 
+        digitalWrite(digitalMultiplexControlPin[2], multiplexPosition[2][sensorDigitalPins[index_number]]);
+        int currentVal = digitalRead(digitalMultiplexPin);
+
         if (sensorDigitalCurVals[index_number] != currentVal) {
             sensorDigitalNewData[index_number] = true;
             sensorDigitalCurVals[index_number] = currentVal;
@@ -21,8 +26,21 @@ void ControlPanel::readDigitalPin(int index_number) {
 }
 
 void ControlPanel::readAnalogPin(int index_number) { 
-    if (sensorAnalogPins[index_number] != -1) {
-        int newVal = analogRead(sensorAnalogPins[index_number]);
+    if (sensorAnalogPins[index_number] > -1) {
+
+        digitalWrite(analogMultiplexControlPin[0], multiplexPosition[0][sensorAnalogPins[index_number]]);
+        digitalWrite(analogMultiplexControlPin[1], multiplexPosition[1][sensorAnalogPins[index_number]]); 
+        digitalWrite(analogMultiplexControlPin[2], multiplexPosition[2][sensorAnalogPins[index_number]]);
+        int newVal = analogRead(analogMultiplexPin);
+
+//        Serial.print(" pin position control ");
+//        Serial.print(analogMultiplexControlPin[0]);
+//        Serial.print(analogMultiplexControlPin[1]);
+//        Serial.print(analogMultiplexControlPin[2]);
+//        Serial.print(" pin number on multiplex ");
+//        Serial.print(sensorAnalogPins[index_number]);
+//        Serial.print(" value ");
+//        Serial.println(newVal);
 
         int valSum = 0;
         for (int i = smoothAnalogPotReading - 1; i > 0; i--) {
@@ -48,7 +66,7 @@ void ControlPanel::readAnalogPin(int index_number) {
 void ControlPanel::outputSerialData () {
     for (int i = 0; i < num_digital_sensors; i++) { serialOutputDigital(i); }
     for (int j = 0; j < num_analog_sensors; j++) { serialOutputAnalog(j); }
-    mixerElement.printMIDIVolume();
+//    mixerElement.printMIDIVolume();
 }
 
 void ControlPanel::serialOutputDigital(int sensor_index) {
@@ -81,67 +99,55 @@ void ControlPanel::serialOutputAnalog(int sensor_index) {
  ** PIN SET-UP FUNCTIONS
  ** Functions that set-up each of the pins on the control panel
  *********************************/ 
-void ControlPanel::setProximityPin (int _proxPin) {
-   mixerElement.setProximityPin(_proxPin);
-  
-}
 
-void ControlPanel::setEqPins (int _pin_eqHigh, int _pin_eqMid, int _pin_eqLow) {
+void ControlPanel::setAnalogInputPins (int _analogMultiplexControlPin, int _analogMultiplexPin) {
+    for (int i = 0; i < 3; i++) {
+        analogMultiplexControlPin[i] = _analogMultiplexControlPin + i;
+        pinMode(analogMultiplexControlPin[i], OUTPUT);
+    }
+    analogMultiplexPin = _analogMultiplexPin;
+    
     // Analog Input Pins (No Call to PinMode)
-    sensorAnalogPins[eqHigh] = _pin_eqHigh;
-    sensorAnalogPins[eqMid] = _pin_eqMid;
-    sensorAnalogPins[eqLow] = _pin_eqLow;
+    sensorAnalogPins[eqHigh] = 0;
+    sensorAnalogPins[eqMid] = 2;
+    sensorAnalogPins[eqLow] = 4;
+    sensorAnalogPins[rotarySelect] = 6;
+//    mixerElement.setProximityPin(1);
 }
 
-void ControlPanel::setLoopPins (int _pin_loopBegin, int _pin_loopEnd, int _pin_loopOnOff, int _pin_loopStartEndLED /*, int _pin_loopOnOffLED*/) {
-    // input pins
-    sensorDigitalPins[loopBegin] = _pin_loopBegin;
-    sensorDigitalPins[loopEnd] = _pin_loopEnd;
-    sensorDigitalPins[loopStartStop] = _pin_loopOnOff;
-    pinMode(sensorDigitalPins[loopBegin], INPUT);
-    pinMode(sensorDigitalPins[loopEnd], INPUT);
-    pinMode(sensorDigitalPins[loopStartStop], INPUT);
+void ControlPanel::setDigitalInputPins (int _digitalMultiplexControlPin) {
+    for (int i = 0; i < 3; i++) {
+       digitalMultiplexControlPin[i] = _digitalMultiplexControlPin + i;
+        pinMode(digitalMultiplexControlPin[i], OUTPUT);
+    }
+    digitalMultiplexPin = _digitalMultiplexControlPin + 3;
+    pinMode(digitalMultiplexPin, INPUT);
 
-    // output pins
-    LEDPins[loopStartEndLED] = _pin_loopStartEndLED;
-    pinMode(LEDPins[loopStartEndLED], OUTPUT);
-/*
-    LEDPins[loopOnOffLED] = _pin_loopOnOffLED;
-    pinMode(LEDPins[loopOnOffLED], OUTPUT);
+    sensorDigitalPins[loopBegin] = 0;
+    sensorDigitalPins[loopEnd] = 2;
+    sensorDigitalPins[loopStartStop] = 4;
+    sensorDigitalPins[monitor] = 6;
 
-*/
+    sensorDigitalPins[crossA] = 1;
+    sensorDigitalPins[crossB] = 3;
+    sensorDigitalPins[volLock] = 5;
+//    sensorDigitalPins[buttonSelect] = 7;
+
 }
 
-void ControlPanel::setVolPins (int _pin_crossA, int _pin_crossB, int _pin_monitor, int _pin_volLock,  int _pin_monitorLED, int _pin_volLED) {
-
-    // set digital input pin numbers
-    sensorDigitalPins[crossA] = _pin_crossA;
-    sensorDigitalPins[crossB] = _pin_crossB;
-    sensorDigitalPins[monitor] = _pin_monitor;
-    sensorDigitalPins[volLock] = _pin_volLock;
-    pinMode(sensorDigitalPins[crossA], INPUT);
-    pinMode(sensorDigitalPins[crossB], INPUT);
-    pinMode(sensorDigitalPins[monitor], INPUT);
-    pinMode(sensorDigitalPins[volLock], INPUT);
-
-    // set digital output pins
-    LEDPins[monitorLED] = _pin_monitorLED;
-    pinMode(LEDPins[monitorLED], OUTPUT);
-
-    // set analog output pins (PWM pins needed)
-    LEDPins[volLED] = _pin_volLED;
+void ControlPanel::setOutputPins(int _firstLEDPin, int _pwmPin) {
+    LEDPins[loopStartEndLED] = _firstLEDPin;
+//    LEDPins[loopOnOffLED] = _firstLEDPin + 1;
+    LEDPins[monitorLED] = _firstLEDPin + 2;
+    LEDPins[volLED] = _pwmPin;
     LEDpwm[volLED] = true;
-    pinMode(LEDPins[volLED], OUTPUT);
+
+// SOURCE OF THE ISSUE IS HERE
+//    pinMode(LEDPins[loopStartEndLED], OUTPUT);
+//    pinMode(LEDPins[loopOnOffLED], OUTPUT);
+//    pinMode(LEDPins[monitorLED], OUTPUT);
+//    pinMode(LEDPins[volLED], OUTPUT);
 }
-
-void ControlPanel::setSelectPins (int _pin_rotarySelect /* , int _pin_buttonSelect*/) {
-//    sensorDigitalPins[buttonSelect] = _pin_buttonSelect;
-//    pinMode(sensorDigitalPins[buttonSelect], INPUT);
-
-    // set analog input pin numbers 
-    sensorAnalogPins[rotarySelect] = _pin_rotarySelect;
-}
-
 
 
 /*********************************

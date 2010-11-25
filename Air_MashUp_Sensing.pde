@@ -1,5 +1,10 @@
+const int  multiplexPin1 [] = {0, 1, 0, 1, 0, 1, 0, 1};
+const int  multiplexPin2 [] = {0, 0, 1, 1, 0, 0, 1, 1};
+const int  multiplexPin3 [] = {0, 0, 0, 0, 1, 1, 1, 1};
 
-
+/**********************************
+ * TEMPO TAP CLASS
+ **********************************/
 class TapTempo {    
     private:  
       #define timer_array_length       4
@@ -9,7 +14,6 @@ class TapTempo {
       #define debounce_interval        120
       
       int blinkPin;                                        // holds pin assignment for bpm pin
-
       boolean tapActive;                                   // flag that identifies whether bpm is being set (new data is arriving)
       boolean newTap;                                      // flag that identfies when specific new taps are received
       unsigned long debounceTime;                          // holds the time when data is received for debouncing purposes
@@ -33,28 +37,30 @@ class TapTempo {
 
       TapTempo();
       void setBpmPins(int);
-      void catchTap(int);           
+      boolean catchTap(int);           
       void catchGe(int);
       void setTempo();
-      void bpmBlink();
-  
+      void bpmBlink(); 
 };
-
-
-        
+    
+    
+/**********************************
+ * MIXER ELEMENT CLASS
+ **********************************/    
 class MixerElement {
     private: 
         #define READINGS_ARRAY_SIZE          6
         #define AVERAGE_READING_BUFFER_SIZE  1
-        #define PRE_READING_BUFFER_SIZE      9    
+        #define PRE_READING_BUFFER_SIZE      3      
 
         #define SENSOR_MIN                   125
         #define SENSOR_MAX                   520
         #define TOP_VOLUME                   127
+        #define sensor_ID                    0
 
         #define gestOnOff_SequenceTime       300
-        #define gestOnOff_FullDelta          160
-        #define gestOnOff_GradientDelta      120
+        #define gestOnOff_FullDelta          150
+        #define gestOnOff_GradientDelta      100
         #define gestOnOff_PauseInterval      450
         
         #define UP                           0
@@ -64,15 +70,18 @@ class MixerElement {
         #define GEST_OFF                     0
         
         #define timer_array_length           4
+        #define timer_interval               30
         #define bpm_max                      240
         #define bpm_min                      40
         #define bpm_led_on_time              70
 
+        int componentNumber;
         int mainPin;
         int laserPin;
 
         int sensorRange;
         float masterVolume;
+        boolean newData;
 
         // hand sensing variables
         boolean handActive;
@@ -107,7 +116,6 @@ class MixerElement {
         int avgBuffer[AVERAGE_READING_BUFFER_SIZE];
         int rawReading;
         int newReading;
-
         int handIntention;
 
         // bpm calculation object instance
@@ -118,9 +126,11 @@ class MixerElement {
         void displayTempo();
         void setTempo();
 
+        MixerElement(int);
         MixerElement(int, int);
         MixerElement(int, int, int);
-        void addTimedReading(unsigned long); 
+        void setProximityPin(int);
+        void addTimedReading(); 
         void addNewReading();
         void updateVolumeMIDI();
         void controlLaser(boolean);
@@ -131,71 +141,123 @@ class MixerElement {
 };
 
 
- boolean connectionStarted = false;
- MixerElement channel1 = MixerElement(1, 2);
- MixerElement channel2 = MixerElement(2, 3);
- MixerElement channel3 = MixerElement(3, 4, 5);
+/**********************************
+ * CONTROL PANEL CLASS
+ **********************************/
+class ControlPanel {
+    public:
+        #define num_digital_sensors      7
+        #define num_analog_sensors       4
+        #define num_digital_LEDs         5
 
+        // sensor array index
+        #define loopBegin                0
+        #define loopEnd                  1
+        #define loopStartStop            2
+        #define monitor                  3
+        #define crossA                   4
+        #define crossB                   5
+        #define volLock                  6
+        //#define buttonSelect           7
+        
+        #define eqHigh                   0
+        #define eqMid                    1
+        #define eqLow                    2
+        #define rotarySelect             3
+        
+        // digital LED array index
+        #define monitorLED               0
+        #define loopStartEndLED          1
+        #define loopOnOffLED             3
+        #define volLED                   4
+        
+        #define smoothAnalogPotReading   10
+
+        // component number
+        int componentNumber;
+        
+        MixerElement mixerElement;
+
+        // digital input pin array
+        int sensorDigitalPins[num_digital_sensors];
+        int sensorDigitalID[num_digital_sensors];
+        int sensorDigitalCurVals[num_digital_sensors];
+        boolean sensorDigitalNewData[num_digital_sensors];
+        
+        // analog input pin array
+        int sensorAnalogPins[num_analog_sensors];
+        int sensorAnalogID[num_analog_sensors];
+        int sensorAnalogCurVals[num_analog_sensors];
+        boolean sensorAnalogNewData[num_analog_sensors];
+        int sensorAnalogPrevVals[num_analog_sensors][smoothAnalogPotReading];
+        
+        // output pin array
+        int LEDPins[num_digital_LEDs];
+        int LEDLastState[num_digital_LEDs];
+        boolean LEDpwm[num_digital_LEDs];
+        
+        ControlPanel(int _componentNumber);
+        void setProximityPin (int);
+        void setEqPins (int, int, int);
+        void setLoopPins (int, int, int, int/*, int*/);
+        void setVolPins (int, int, int, int,  int, int);
+        void setSelectPins (int /*, int*/);
+        void readData();
+        void readDigitalPin(int);
+        void readAnalogPin(int);
+        void serialOutputDigital(int);
+        void serialOutputAnalog(int);
+        void outputSerialData ();
+};
+
+
+
+
+
+
+
+
+
+
+/************************************
+ ***** SETUP AND LOOP FUNCTIONS *****
+ ************************************/
+
+ControlPanel controlPanel = ControlPanel(2);
+
+ boolean connectionStarted = false;
+// MixerElement channel1 = MixerElement(1, 1);
+// MixerElement channel2 = MixerElement(2, 2);
+// MixerElement channel3 = MixerElement(3, 4, 5);
 
 void setup() {  
   Serial.begin(9600); 
+    controlPanel.setProximityPin(5);  
+    controlPanel.setEqPins(4, 3, 2);  
+    controlPanel.setLoopPins(6, 8, 5, 10);
+    controlPanel.setVolPins(4, 3, 9, 2, 11, 12);  
+    controlPanel.setSelectPins(1);
 }
-
 
 
 void loop() {
     if (Serial.available()) {
-        Serial.read();
-        connectionStarted = true; 
-    }
-
+         char newCommand = Serial.read();
+         if (newCommand == 'S' || newCommand == 's') connectionStarted = true; 
+         if (newCommand == 'X' || newCommand == 'x') connectionStarted = false;
+     }     
+     
     unsigned long currentTime = millis();
     if (connectionStarted) {
-        channel1.addTimedReading(currentTime);
-        channel2.addTimedReading(currentTime);
-//        channel3.addTimedReading(currentTime);
-
-        channel1.updateVolumeMIDI();   
-        channel2.updateVolumeMIDI();   
-//        channel3.captureTempoTap();
-
-        sendSerialData();
+//        channel1.addTimedReading();
+//        channel2.addTimedReading();
+//        channel1.updateVolumeMIDI();   
+//        channel2.updateVolumeMIDI();  
+//        channel1.printMIDIVolume();
+//        channel2.printMIDIVolume();
+         controlPanel.readData();
+         controlPanel.outputSerialData();
     }
 }
-
-
-void print2serial(String _name, long _value) {
-  Serial.print(_name);
-  Serial.print(": ");
-  Serial.print(_value, DEC);  
-  Serial.print(", ");
-}
-
-
-void sendSerialData() {
-  Serial.print(channel1.timeStamps[0]);
-  Serial.print(" ");  
-//  Serial.print(" -  C1 ");
-  channel1.printMIDIVolume();
-//  channel3.printBPM();
-//  Serial.print(" hand intention ");
-//  Serial.print(channel2.handIntention);
-//  Serial.print(" raw ");
-//  Serial.print(channel1.rawReadings[0]);
-//  Serial.print(" pre ");
-//  Serial.print(channel1.preBuffer[0]);
-
-//  Serial.print(" - C2: ");
-  channel2.printMIDIVolume();
-//  Serial.print(" raw ");
-//  Serial.print(channel2.rawReadings[0]);
-//  Serial.print(" pre ");
-//  Serial.print(channel2.preBuffer[0]);
-
-  Serial.println();
-
-}
-
-
 
 

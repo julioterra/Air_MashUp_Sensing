@@ -201,6 +201,13 @@ class ControlPanel {
         int sensorAnalogCurVals[num_analog_sensors];
         boolean sensorAnalogNewData[num_analog_sensors];
         int sensorAnalogPrevVals[num_analog_sensors][smoothAnalogPotReading];
+
+        int rotaryEncoderPins[2];
+        int rotaryEncoderVals[2];
+
+        // variables for reading rotary encoder
+        int oldPos;
+        int oldTurn, turnCount;       
         
         // output pin array
         int LEDPins[num_digital_LEDs];
@@ -208,20 +215,18 @@ class ControlPanel {
         boolean LEDpwm[num_digital_LEDs];
         
         ControlPanel(int _componentNumber);
-        void setAnalogInputPins (int, int);    // first control pins, data collect pin
-        void setDigitalInputPins (int);        // first pin (both control and data collect are in sync)
-        void setOutputPins (int, int);         // first digital output pin, and pwm output pin
-        void setProximityPin (int);
-        void setEqPins (int, int, int);
-        void setLoopPins (int, int, int, int/*, int*/);
-        void setVolPins (int, int, int, int,  int, int);
-        void setSelectPins (int /*, int*/);
+        void initArrays();
+        void setAnalogInputPins (int, int, boolean);          // first control pins, data collect pin
+        void setDigitalInputPins (int);              // first pin (both control and data collect are in sync)
+        void setOutputPins (int, int);               // first digital output pin, and pwm output pin
         void readData();
         void readDigitalPin(int);
         void readAnalogPin(int);
+        void readRotaryEncoder(int);
         void serialOutputDigital(int);
         void serialOutputAnalog(int);
         void outputSerialData ();
+        void printSetupData();
         
 };
 
@@ -239,15 +244,18 @@ ControlPanel controlPanel = ControlPanel(2);
 
 void setup() {  
   Serial.begin(9600); 
-  
-    controlPanel.setAnalogInputPins (6, 1);
+
+    controlPanel.initArrays();
+    controlPanel.setAnalogInputPins (6, 1, true);
     controlPanel.setDigitalInputPins (2);
-    controlPanel.setOutputPins (10, 9);
+    controlPanel.setOutputPins (16, 11);
+    controlPanel.printSetupData();
+  
 }
 
 
 void loop() {
-    if (Serial.available()) {
+   if (Serial.available()) {
          char newCommand = Serial.read();
          if (newCommand == 'S' || newCommand == 's') connectionStarted = true; 
          if (newCommand == 'X' || newCommand == 'x') connectionStarted = false;
@@ -255,6 +263,7 @@ void loop() {
      
     unsigned long currentTime = millis();
     if (connectionStarted) {
+
          controlPanel.readData();
          controlPanel.outputSerialData();
     }

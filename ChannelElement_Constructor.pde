@@ -124,7 +124,7 @@ void MixerElement::setProximityPin(int _proxPin) {
 }
 
 // Set Proximit Pin
-void MixerElement::setMultiplexerProximityPin(int _proxPin, int _multiPin, int _multiControl) {
+void MixerElement::setMultiplexerProximityPin(int _proxPin, int _multiControl, int _multiPin) {
       for (int i = 0; i < 3; i++) {
          multiplexControlPin[i] = _multiControl + i;  
       }

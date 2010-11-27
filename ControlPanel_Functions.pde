@@ -143,19 +143,19 @@ void ControlPanel::setAnalogInputPins (int _analogMultiplexControlPin, int _anal
     
     if (_firstSide) {
         // Analog Input Pins (No Call to PinMode)
-        sensorAnalogPins[eqHigh] = 0;
-        sensorAnalogPins[eqMid] = 2;
-        sensorAnalogPins[eqLow] = 4;
-        mixerElement.setMultiplexerProximityPin(_analogMultiplexPin, _analogMultiplexControlPin, 6);
+        sensorAnalogPins[eqHigh] = 2;
+        sensorAnalogPins[eqMid] = 4;
+        sensorAnalogPins[eqLow] = 6;
+        mixerElement.setMultiplexerProximityPin(_analogMultiplexPin, _analogMultiplexControlPin, 0);
         sensorAnalogPins[rotarySelect] = 100;
         rotaryEncoderPins[0] = analogMultiplexControlPin[2] + 1;
         rotaryEncoderPins[1] = rotaryEncoderPins[0] + 1;
     } else {
         // Analog Input Pins (No Call to PinMode)
-        sensorAnalogPins[eqHigh] = 1;
-        sensorAnalogPins[eqMid] = 3;
-        sensorAnalogPins[eqLow] = 5;
-        mixerElement.setMultiplexerProximityPin(_analogMultiplexPin, _analogMultiplexControlPin, 7);
+        sensorAnalogPins[eqHigh] = 3;
+        sensorAnalogPins[eqMid] = 5;
+        sensorAnalogPins[eqLow] = 7;
+        mixerElement.setMultiplexerProximityPin(_analogMultiplexPin, _analogMultiplexControlPin, 1);
         sensorAnalogPins[rotarySelect] = 100;
         rotaryEncoderPins[0] = analogMultiplexControlPin[2] + 3;
         rotaryEncoderPins[1] = rotaryEncoderPins[0] + 1;

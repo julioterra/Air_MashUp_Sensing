@@ -246,7 +246,7 @@ void setup() {
   Serial.begin(9600); 
 
     controlPanel.initArrays();
-    controlPanel.setAnalogInputPins (6, 1, true);
+    controlPanel.setAnalogInputPins (6, 1, false);
     controlPanel.setDigitalInputPins (2);
     controlPanel.setOutputPins (16, 11);
     controlPanel.printSetupData();

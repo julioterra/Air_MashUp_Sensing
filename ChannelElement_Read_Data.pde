@@ -24,11 +24,12 @@ void MixerElement::addNewReading() {
   
     // read new data value from sensor
     if (multiplexer) {
-        digitalWrite(multiplexControlPin[0], multiplexPosition[0][multiPin]);
-        digitalWrite(multiplexControlPin[1], multiplexPosition[1][multiPin]); 
-        digitalWrite(multiplexControlPin[2], multiplexPosition[2][multiPin]);
+        digitalWrite(multiplex16ControlPin[0], multiplex16Position[0][mainPin]);
+        digitalWrite(multiplex16ControlPin[1], multiplex16Position[1][mainPin]); 
+        digitalWrite(multiplex16ControlPin[2], multiplex16Position[2][mainPin]);
+        digitalWrite(multiplex16ControlPin[3], multiplex16Position[3][mainPin]);
     }
-    rawReading = analogRead(mainPin);
+    rawReading = analogRead(multiplex16ReadPin);
     
 
     

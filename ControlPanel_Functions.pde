@@ -3,60 +3,63 @@
  ** Functions that read data from each of pins on the control panel
  *********************************/ 
 void ControlPanel::readData() {
-    for (int i = 0; i < num_digital_sensors; i++) { readDigitalPin(i); }
-    for (int j = 0; j < num_analog_sensors; j++) { readAnalogPin(j); }
+    for (int k = 0; k < num_sensors; k++) { readPin(k); }
     mixerElement.addTimedReading();
 }
 
-void ControlPanel::readDigitalPin(int index_number) { 
-   if (sensorDigitalPins[index_number] > -1) {
 
-        digitalWrite(digitalMultiplexControlPin[0], multiplexPosition[0][sensorDigitalPins[index_number]]);
-        digitalWrite(digitalMultiplexControlPin[1], multiplexPosition[1][sensorDigitalPins[index_number]]); 
-        digitalWrite(digitalMultiplexControlPin[2], multiplexPosition[2][sensorDigitalPins[index_number]]);
-        int currentVal = digitalRead(digitalMultiplexPin);
+void ControlPanel::readPin(int index_number) { 
+   if (sensorPins[index_number] > -1) {
 
-        if (sensorDigitalCurVals[index_number] != currentVal) {
-            sensorDigitalNewData[index_number] = true;
-            sensorDigitalCurVals[index_number] = currentVal;
-        }
-        else sensorDigitalNewData[index_number] = false;
-    }
-}
-
-void ControlPanel::readAnalogPin(int index_number) { 
-    if (sensorAnalogPins[index_number] > -1) {
-        if (index_number == rotarySelect) {
-            readRotaryEncoder(index_number);
-        } else {      
-            digitalWrite(analogMultiplexControlPin[0], multiplexPosition[0][sensorAnalogPins[index_number]]);
-            digitalWrite(analogMultiplexControlPin[1], multiplexPosition[1][sensorAnalogPins[index_number]]); 
-            digitalWrite(analogMultiplexControlPin[2], multiplexPosition[2][sensorAnalogPins[index_number]]);
-            int newVal = analogRead(analogMultiplexPin);
-    
-            int valSum = 0;
-            for (int i = smoothAnalogPotReading - 1; i > 0; i--) {
-                sensorAnalogPrevVals[index_number][i] = sensorAnalogPrevVals[index_number][i-1];          
-                valSum = valSum + sensorAnalogPrevVals[index_number][i];
-            }
-            sensorAnalogPrevVals[index_number][0] = newVal;        
-            int currentVal = (valSum + newVal) / smoothAnalogPotReading;
-            int offset = (float(sensorAnalogCurVals[index_number]) * 0.01) + 11;
+        digitalWrite(multiplex16ControlPin[0], multiplex16Position[0][sensorPins[index_number]]);
+        digitalWrite(multiplex16ControlPin[1], multiplex16Position[1][sensorPins[index_number]]); 
+        digitalWrite(multiplex16ControlPin[2], multiplex16Position[2][sensorPins[index_number]]);
+        digitalWrite(multiplex16ControlPin[3], multiplex16Position[3][sensorPins[index_number]]);
         
-            if (currentVal < sensorAnalogCurVals[index_number] - offset || currentVal > sensorAnalogCurVals[index_number] + offset) {
-                sensorAnalogNewData[index_number] = true;
-                sensorAnalogCurVals[index_number] = currentVal;
+        int currentVal;
+        if (sensorAnalog[index_number] == true) {
+            if (index_number == rotarySelect) {
+                readRotaryEncoder(index_number);
+            } else {      
+                int newVal = analogRead(multiplex16ReadPin);
+    
+                int valSum = 0;
+                for (int i = smoothAnalogPotReading - 1; i > 0; i--) {
+                    sensorPrevVals[index_number][i] = sensorPrevVals[index_number][i-1];          
+                    valSum = valSum + sensorPrevVals[index_number][i];
+                }
+                sensorPrevVals[index_number][0] = newVal;        
+    
+                int currentVal = (valSum + newVal) / smoothAnalogPotReading;
+                int offset = (float(sensorCurVals[index_number]) * 0.01) + 11;       
+                if (currentVal < sensorCurVals[index_number] - offset || currentVal > sensorCurVals[index_number] + offset) {
+                    sensorNewData[index_number] = true;
+                    sensorCurVals[index_number] = currentVal;
+                }
+                else sensorNewData[index_number] = false;
             }
-            else sensorAnalogNewData[index_number] = false;
+        }
+
+       else { 
+            if (multiplex16ReadPin == 1) currentVal = digitalRead(A1);
+            else if (multiplex16ReadPin == 2) currentVal = digitalRead(A2);
+            else if (multiplex16ReadPin == 3) currentVal = digitalRead(A3);
+            else if (multiplex16ReadPin == 4) currentVal = digitalRead(A4);
+            if (sensorCurVals[index_number] != currentVal) {
+                sensorNewData[index_number] = true;
+                sensorCurVals[index_number] = currentVal;
+            }
+            else sensorNewData[index_number] = false;
         }
     }
 }
+
 
 void ControlPanel::readRotaryEncoder (int index_number) {
     int val[] = {0,0};
     int pos = 0;
     int turn = 0;
-    sensorAnalogNewData[index_number] = false;
+    sensorNewData[index_number] = false;
 
     val[0] = digitalRead(rotaryEncoderPins[0]);
     val[1] = digitalRead(rotaryEncoderPins[1]);
@@ -76,8 +79,8 @@ void ControlPanel::readRotaryEncoder (int index_number) {
         }
         
         if (pos == 0 && turnCount != 0) {      // only assume a complete step on stationary position
-            sensorAnalogNewData[index_number] = true;
-            sensorAnalogCurVals[index_number] = turnCount;
+            sensorNewData[index_number] = true;
+            sensorCurVals[index_number] = turnCount;
             turnCount = 0;
         }
         
@@ -94,39 +97,23 @@ void ControlPanel::readRotaryEncoder (int index_number) {
  ** Functions that read data from each of pins on the control panel
  *********************************/ 
 void ControlPanel::outputSerialData () {
-    for (int i = 0; i < num_digital_sensors; i++) { serialOutputDigital(i); }
-    for (int j = 0; j < num_analog_sensors; j++) { serialOutputAnalog(j); }
+    for (int j = 0; j < num_sensors; j++) { serialOutput(j); }
     mixerElement.updateVolumeMIDI();   
     mixerElement.printMIDIVolume();
 }
 
-void ControlPanel::serialOutputDigital(int sensor_index) {
-    if (sensor_index < num_digital_sensors) {
-        if (sensorDigitalNewData[sensor_index]) {
+void ControlPanel::serialOutput(int sensor_index) {
+    if (sensor_index < num_sensors) {
+        if (sensorNewData[sensor_index]) {
             Serial.print(componentNumber);
             Serial.print(" ");
-            Serial.print(sensorDigitalID[sensor_index]);
+            Serial.print(sensorID[sensor_index]);
             Serial.print(" ");
-            Serial.print(sensorDigitalCurVals[sensor_index]);
+            Serial.print(sensorCurVals[sensor_index]);
             Serial.println();
         }  
     }
 } 
-
-void ControlPanel::serialOutputAnalog(int sensor_index) {
-    if (sensor_index < num_analog_sensors) {
-        if (sensorAnalogNewData[sensor_index]) {
-            Serial.print(componentNumber);
-            Serial.print(" ");
-            Serial.print(sensorAnalogID[sensor_index]);
-            Serial.print(" ");
-            Serial.print(sensorAnalogCurVals[sensor_index]);
-            Serial.println();
-
-        }  
-    }
-}
-
 
 
 /*********************************
@@ -134,52 +121,36 @@ void ControlPanel::serialOutputAnalog(int sensor_index) {
  ** Functions that set-up each of the pins on the control panel
  *********************************/ 
 
-void ControlPanel::setAnalogInputPins (int _analogMultiplexControlPin, int _analogMultiplexPin, boolean _firstSide) {
-    for (int i = 0; i < 3; i++) {
-        analogMultiplexControlPin[i] = _analogMultiplexControlPin + i;
-        pinMode(analogMultiplexControlPin[i], OUTPUT);
+void ControlPanel::setInputPins (int _multiplexControlPin, boolean _firstSide) {
+   for (int i = 0; i < 4; i++) {
+        multiplex16ControlPin[i] = _multiplexControlPin + (i*2);
+        pinMode(multiplex16ControlPin[i], OUTPUT);
     }
-    analogMultiplexPin = _analogMultiplexPin;
-    
-    if (_firstSide) {
-        // Analog Input Pins (No Call to PinMode)
-        sensorAnalogPins[eqHigh] = 2;
-        sensorAnalogPins[eqMid] = 4;
-        sensorAnalogPins[eqLow] = 6;
-        mixerElement.setMultiplexerProximityPin(_analogMultiplexPin, _analogMultiplexControlPin, 0);
-        sensorAnalogPins[rotarySelect] = 100;
-        rotaryEncoderPins[0] = analogMultiplexControlPin[2] + 1;
-        rotaryEncoderPins[1] = rotaryEncoderPins[0] + 1;
-    } else {
-        // Analog Input Pins (No Call to PinMode)
-        sensorAnalogPins[eqHigh] = 3;
-        sensorAnalogPins[eqMid] = 5;
-        sensorAnalogPins[eqLow] = 7;
-        mixerElement.setMultiplexerProximityPin(_analogMultiplexPin, _analogMultiplexControlPin, 1);
-        sensorAnalogPins[rotarySelect] = 100;
-        rotaryEncoderPins[0] = analogMultiplexControlPin[2] + 3;
-        rotaryEncoderPins[1] = rotaryEncoderPins[0] + 1;
-    }
+    multiplex16ReadPin = componentNumber;
+
+    sensorPins[monitor] = 0;
+    sensorPins[loopStartStop] = 1;
+    sensorPins[loopBegin] = 2;
+    sensorPins[loopEnd] = 3;
+
+    sensorPins[buttonSelect] = 4;
+    sensorPins[crossA] = 5;
+    sensorPins[crossB] = 6;
+    sensorPins[volLock] = 7;
+
+    // Analog Input Pins (No Call to PinMode)
+    sensorPins[eqHigh] = 8;
+    sensorPins[eqMid] = 9;
+    sensorPins[eqLow] = 10;
+    mixerElement.setMultiplexerProximityPin(11, _multiplexControlPin, multiplex16ReadPin);
+    sensorPins[rotarySelect] = 100;
+
+    if (componentNumber % 2 == 1) { rotaryEncoderPins[0] = multiplex16ControlPin[3] + 10; }
+    else if (componentNumber % 2 == 0) { rotaryEncoderPins[0] = multiplex16ControlPin[3] + 6; }
+    rotaryEncoderPins[1] = rotaryEncoderPins[0] + 2;
 }
 
-void ControlPanel::setDigitalInputPins (int _digitalMultiplexControlPin) {
-    for (int i = 0; i < 3; i++) {
-       digitalMultiplexControlPin[i] = _digitalMultiplexControlPin + i;
-        pinMode(digitalMultiplexControlPin[i], OUTPUT);
-    }
-    digitalMultiplexPin = _digitalMultiplexControlPin + 3;
-    pinMode(digitalMultiplexPin, INPUT);
 
-    sensorDigitalPins[loopBegin] = 0;
-    sensorDigitalPins[loopEnd] = 2;
-    sensorDigitalPins[loopStartStop] = 6;
-    sensorDigitalPins[monitor] = 4;
-
-    sensorDigitalPins[crossA] = 1;
-    sensorDigitalPins[crossB] = 3;
-    sensorDigitalPins[volLock] = 7;
-    sensorDigitalPins[buttonSelect] = 5;
-}
 
 void ControlPanel::setOutputPins(int _firstLEDPin, int _pwmPin) {
     LEDPins[loopStartEndLED] = _firstLEDPin;
@@ -210,33 +181,31 @@ void ControlPanel::setOutputPins(int _firstLEDPin, int _pwmPin) {
  ** ARRAY INIT FUNCTION
  ** Functions that initializes all arrrays
  *********************************/ 
-ControlPanel::ControlPanel(int _componentNumber)  : mixerElement(_componentNumber) {
-    componentNumber = _componentNumber;
-}
+//ControlPanel::ControlPanel(int _componentNumber) : mixerElement(_componentNumber) {
+//    componentNumber = _componentNumber;
+//}
 
 void ControlPanel::initArrays() {
     int IDcounter = 1;           // counter used to assign an IDs to each sensor
+    int multi16IDcounter = 1;           // counter used to assign an IDs to each sensor
     oldPos = 0;
     oldTurn = 0; 
     turnCount = 0;       
 
-    // initialize all arrays associated to digital sensors      
-    for (int i = 0; i < num_digital_sensors; i++) {
-         sensorDigitalPins[i] = -1;                  // set pin numbers to -1 (unassigned)
-         sensorDigitalCurVals[i] = 0;                // set current values to 0
-         sensorDigitalNewData[i] = false;            // set new data flags to false
-         sensorDigitalID[i] = IDcounter;             // assign a sensor ID to each sensor
-         for (int j = smoothAnalogPotReading - 1; j >= 0; j--) sensorAnalogPrevVals[i][j] = 0;
-         IDcounter++;                                // increment the sensor ID counter
-     }
-
-     // initialize all arrays associated to analog sensors      
-     for (int j = 0; j < num_analog_sensors; j++) {
-         sensorAnalogPins[j] = -1;                   // set pin numbers to -1 (unassigned)
-         sensorAnalogCurVals[j] = 0;                 // set current values to 0
-         sensorAnalogNewData[j] = false;             // set new data flags to false
-         sensorAnalogID[j] = IDcounter;              // assign a sensor ID to each sensor
-         IDcounter++;                                // increment the sensor ID counter
+    Serial.print(" Component Number from init Arrays ");
+    Serial.println(componentNumber);
+    
+    // initialize all arrays associated to sensors      
+    for (int i = 0; i < num_sensors; i++) {
+         sensorPins[i] = -1;                  // set pin numbers to -1 (unassigned)
+         sensorCurVals[i] = 0;                // set current values to 0
+         sensorNewData[i] = false;            // set new data flags to false
+         sensorID[i] = multi16IDcounter;             // assign a sensor ID to each sensor
+         if (i < num_digital_sensors) sensorAnalog[i] = false; 
+             else sensorAnalog[i] = true;
+         for (int j = smoothAnalogPotReading - 1; j >= 0; j--) 
+             sensorPrevVals[i][j] = 0;
+         multi16IDcounter++;                                // increment the sensor ID counter
      }
     
      // initialize all arrays associated to LEDs      
@@ -248,45 +217,42 @@ void ControlPanel::initArrays() {
 
 }
 
+
 void ControlPanel::printSetupData() {
 
-    Serial.print("Digital: multiplex reading pin ");
-    Serial.print(digitalMultiplexPin);
-    Serial.print(" multiplex control pins ");
-    Serial.print(digitalMultiplexControlPin[0]);
+    Serial.println("===========================");
+    Serial.print("Component Number: ");
+    Serial.println(componentNumber);
+
+    Serial.print("Multiplex Reading pin: ");
+    Serial.println(multiplex16ReadPin);
+    Serial.print("Multiplex control pins: ");
+    Serial.print(multiplex16ControlPin[0]);
     Serial.print(" - ");
-    Serial.print(digitalMultiplexControlPin[1]);
+    Serial.print(multiplex16ControlPin[1]);
     Serial.print(" - ");
-    Serial.print(digitalMultiplexControlPin[2]);
+    Serial.print(multiplex16ControlPin[2]);
+    Serial.print(" - ");
+    Serial.print(multiplex16ControlPin[3]);
     Serial.println("");
 
-    for (int i = 0; i < num_digital_sensors; i++) {
-         Serial.print(" digital sensor number ");
+    Serial.println("Sensor Overview: ");
+    for (int i = 0; i < num_sensors; i++) {
+         Serial.print(" sensor number ");
          Serial.print(i);
          Serial.print(" digital sensor ID ");
-         Serial.print(sensorDigitalID[i]);
-         Serial.print(" digital sensor Pin ");
-         Serial.print(sensorDigitalPins[i]);
+         Serial.print(sensorID[i]);
+         Serial.print(" sensor Pin ");
+         Serial.print(sensorPins[i]);
          Serial.println(" ");
     }
      
-    Serial.print("Analog: multiplex reading pin ");
-    Serial.print(analogMultiplexPin);
-    Serial.print(" multiplex control pins ");
-    Serial.print(analogMultiplexControlPin[0]);
-    Serial.print(" - ");
-    Serial.print(analogMultiplexControlPin[1]);
-    Serial.print(" - ");
-    Serial.print(analogMultiplexControlPin[2]);
-    Serial.println("");
-    
-     for (int j = 0; j < num_analog_sensors; j++) {         
-         Serial.print(" analog sensor number ");
-         Serial.print(j);
-         Serial.print(" analog sensor ID ");
-         Serial.print(sensorAnalogID[j]);
-         Serial.print(" analog sensor Pin ");
-         Serial.print(sensorAnalogPins[j]);
+         Serial.print(" rotary encoder - pin one ");
+         Serial.print(rotaryEncoderPins[0]);
+         Serial.print(" pin two ");
+         Serial.print(rotaryEncoderPins[1]);
          Serial.println(" ");
-     }
+   
+     
 }
+

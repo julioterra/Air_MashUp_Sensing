@@ -261,14 +261,29 @@ class ControlPanel {
  ***** SETUP AND LOOP FUNCTIONS *****
  ************************************/
 
-ControlPanel controlPanel[4] = {ControlPanel(1), ControlPanel(1), ControlPanel(3), ControlPanel(4)};
-//MixerElement main_volume = MixerElement()
+#define main_component            0
+#define main_volume_pin           0
+#define main_vol_sensor_num       0
+#define smooth_main_volume        6
+
+#define killer_switch_pin         15
+#define killer_switch_sensor_num  1
+
+int main_volume;
+int main_volume_previous[smooth_main_volume];
+boolean new_volume_data; 
+
+int killer_switch;
+boolean new_killer_switch_data; 
+
+
+ControlPanel controlPanel[4] = {ControlPanel(1), ControlPanel(2), ControlPanel(3), ControlPanel(4)};
 
 boolean connectionStarted = false;
 
 void setup() {  
   Serial.begin(115200); 
-
+  initMainComponent();  
   for(int i = 0; i < 4; i ++) {
       controlPanel[i].initArrays();
       if (i == 0) controlPanel[i].setInputPins(22, 1);
@@ -293,9 +308,83 @@ void loop() {
     if (connectionStarted) {
         for(int i = 0; i < 4; i ++) {
                controlPanel[i].readData();
+               readMainComponent();
+               
                controlPanel[i].outputSerialData();
+               printMainComponent(); 
         }
     }
 }
+
+
+void initMainComponent() {
+  main_volume = analogRead(main_volume_pin); 
+  new_volume_data = false;
+  pinMode(killer_switch_pin, INPUT);
+  
+}
+
+void readMainComponent() {
+  readVolume();  
+  readKiller();
+}
+
+void printMainComponent() {
+  printVolume(); 
+  printKiller();
+}
+
+
+void readVolume() {
+      int new_volume = analogRead(main_volume_pin)/8;   // divide by 8 to convert values into MIDI range
+      int volume_sum = 0;
+
+      for (int i = smooth_main_volume - 1; i > 0; i--) {
+          main_volume_previous[i] = main_volume_previous[i-1];          
+          volume_sum = volume_sum + main_volume_previous[i];
+      }
+      main_volume_previous[0] = new_volume;        
+
+      int calculated_volume = (volume_sum + new_volume) / smooth_main_volume;
+      int offset = (float(main_volume) * 0.01) + 3;       
+      if (calculated_volume < main_volume - offset || calculated_volume > main_volume + offset) {
+          new_volume_data = true;
+          main_volume = calculated_volume;
+      }
+      else new_volume_data = false;
+}
+
+void printVolume() {
+    if (new_volume_data) {
+      Serial.print(main_component);
+      Serial.print(" ");  
+      Serial.print(main_vol_sensor_num);
+      Serial.print(" ");  
+      Serial.println(main_volume);
+    }
+}
+
+void readKiller() {
+      int current_val = digitalRead(killer_switch_pin);
+      current_val = (current_val * 127);
+      if (killer_switch != current_val) {
+          new_killer_switch_data = true;
+          killer_switch = current_val;
+      }
+      else new_killer_switch_data = false;
+}
+
+void printKiller() {
+    if (new_killer_switch_data) {
+      Serial.print(main_component);
+      Serial.print(" ");  
+      Serial.print(killer_switch_sensor_num);
+      Serial.print(" ");  
+      Serial.println(killer_switch);
+    }
+}
+
+
+
 
 

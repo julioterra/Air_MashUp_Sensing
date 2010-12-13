@@ -112,8 +112,7 @@ void ControlPanel::serialOutput(int sensor_index) {
             Serial.print(" ");
             Serial.print(sensorID[sensor_index]);
             Serial.print(" ");
-            Serial.print(sensorCurVals[sensor_index]);
-            Serial.println();
+            Serial.println(sensorCurVals[sensor_index]);
         }  
     }
 } 

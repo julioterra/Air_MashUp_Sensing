@@ -39,8 +39,7 @@ void MixerElement::printMIDIVolume() {
       Serial.print(' ');  
       Serial.print(sensor_ID);
       Serial.print(' ');  
-      Serial.print(int(masterVolume));
-      Serial.println();  
+      Serial.println(int(masterVolume));
       newData = false;
   }
 }
@@ -61,8 +60,7 @@ void MixerElement::printBPM() {
       Serial.print(' ');  
       Serial.print(sensor_ID);
       Serial.print(' ');  
-      Serial.print(tapTempo.bpm);
-      Serial.print(" ");  
+      Serial.println(tapTempo.bpm);
     }
 }
 

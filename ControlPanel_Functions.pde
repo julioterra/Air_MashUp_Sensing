@@ -4,7 +4,7 @@
  *********************************/ 
 void ControlPanel::readData() {
     for (int k = 0; k < num_sensors; k++) { readPin(k); }
-    mixerElement.addTimedReading();
+    if (sensorCurVals[volLock] == 0) mixerElement.addTimedReading();
 }
 
 
@@ -21,7 +21,7 @@ void ControlPanel::readPin(int index_number) {
             if (index_number == rotarySelect) {
                 readRotaryEncoder(index_number);
             } else {      
-                int newVal = analogRead(multiplex16ReadPin);
+                int newVal = analogRead(multiplex16ReadPin) / 8;   // divide by 8 to convert values into MIDI range
     
                 int valSum = 0;
                 for (int i = smoothAnalogPotReading - 1; i > 0; i--) {
@@ -31,7 +31,7 @@ void ControlPanel::readPin(int index_number) {
                 sensorPrevVals[index_number][0] = newVal;        
     
                 int currentVal = (valSum + newVal) / smoothAnalogPotReading;
-                int offset = (float(sensorCurVals[index_number]) * 0.01) + 11;       
+                int offset = (float(sensorCurVals[index_number]) * 0.01) + 3;       
                 if (currentVal < sensorCurVals[index_number] - offset || currentVal > sensorCurVals[index_number] + offset) {
                     sensorNewData[index_number] = true;
                     sensorCurVals[index_number] = currentVal;
@@ -41,10 +41,12 @@ void ControlPanel::readPin(int index_number) {
         }
 
        else { 
-            if (multiplex16ReadPin == 1) currentVal = digitalRead(A1);
+            if (multiplex16ReadPin == 0) currentVal = digitalRead(A0);
+            else if (multiplex16ReadPin == 1) currentVal = digitalRead(A1);
             else if (multiplex16ReadPin == 2) currentVal = digitalRead(A2);
             else if (multiplex16ReadPin == 3) currentVal = digitalRead(A3);
             else if (multiplex16ReadPin == 4) currentVal = digitalRead(A4);
+            currentVal = (currentVal * 127);
             if (sensorCurVals[index_number] != currentVal) {
                 sensorNewData[index_number] = true;
                 sensorCurVals[index_number] = currentVal;
@@ -80,7 +82,8 @@ void ControlPanel::readRotaryEncoder (int index_number) {
         
         if (pos == 0 && turnCount != 0) {      // only assume a complete step on stationary position
             sensorNewData[index_number] = true;
-            sensorCurVals[index_number] = turnCount;
+            if (turnCount > 0) sensorCurVals[index_number] = -1;
+            if (turnCount < 0) sensorCurVals[index_number] = 1;
             turnCount = 0;
         }
         
@@ -121,12 +124,12 @@ void ControlPanel::serialOutput(int sensor_index) {
  ** Functions that set-up each of the pins on the control panel
  *********************************/ 
 
-void ControlPanel::setInputPins (int _multiplexControlPin, boolean _firstSide) {
+void ControlPanel::setInputPins (int _multiplexControlPin, int _multiplexReadPin) {
    for (int i = 0; i < 4; i++) {
         multiplex16ControlPin[i] = _multiplexControlPin + (i*2);
         pinMode(multiplex16ControlPin[i], OUTPUT);
     }
-    multiplex16ReadPin = componentNumber;
+    multiplex16ReadPin = _multiplexReadPin;
 
     sensorPins[monitor] = 0;
     sensorPins[loopStartStop] = 1;
@@ -186,8 +189,8 @@ void ControlPanel::setOutputPins(int _firstLEDPin, int _pwmPin) {
 //}
 
 void ControlPanel::initArrays() {
-    int IDcounter = 1;           // counter used to assign an IDs to each sensor
-    int multi16IDcounter = 1;           // counter used to assign an IDs to each sensor
+    int IDcounter = 0;           // counter used to assign an IDs to each sensor
+    int multi16IDcounter = 0;           // counter used to assign an IDs to each sensor
     oldPos = 0;
     oldTurn = 0; 
     turnCount = 0;       

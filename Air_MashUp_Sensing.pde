@@ -58,7 +58,7 @@ class MixerElement {
         #define SENSOR_MIN                   125
         #define SENSOR_MAX                   520
         #define TOP_VOLUME                   127
-        #define sensor_ID                    0
+        #define sensor_ID                    12
 
         #define gestOnOff_SequenceTime       300
         #define gestOnOff_FullDelta          150
@@ -171,6 +171,7 @@ class ControlPanel {
         #define eqMid                    9
         #define eqLow                    10
         #define rotarySelect             11
+        #define proximity                12
         
         // digital LED array index
         #define monitorLED               0
@@ -231,9 +232,10 @@ class ControlPanel {
         boolean LEDpwm[num_digital_LEDs];
         
 //        ControlPanel(int _componentNumber);
-ControlPanel(int _componentNumber) : mixerElement(_componentNumber) {
-    componentNumber = _componentNumber;
-}        void initArrays();
+        ControlPanel(int _componentNumber) : mixerElement(_componentNumber) {
+              componentNumber = _componentNumber;
+        }        
+        void initArrays();
         void setAnalogInputPins (int, int, boolean);          // first control pins, data collect pin
         void setDigitalInputPins (int);              // first pin (both control and data collect are in sync)
         void setOutputPins (int, int);               // first digital output pin, and pwm output pin
@@ -246,34 +248,37 @@ ControlPanel(int _componentNumber) : mixerElement(_componentNumber) {
         void outputSerialData ();
         void printSetupData();
 
-        void setInputPins (int, boolean);          // first control pins, data collect pin
+        void setInputPins (int, int);          // first control pins, data collect pin
         void readPin(int);
         void serialOutput(int);
 };
+
+
+
 
 
 /************************************
  ***** SETUP AND LOOP FUNCTIONS *****
  ************************************/
 
-ControlPanel controlPanel = ControlPanel(1);
-ControlPanel controlPanel2 = ControlPanel(2);
+ControlPanel controlPanel[4] = {ControlPanel(1), ControlPanel(1), ControlPanel(3), ControlPanel(4)};
+//MixerElement main_volume = MixerElement()
 
- boolean connectionStarted = false;
+boolean connectionStarted = false;
 
 void setup() {  
-  Serial.begin(9600); 
+  Serial.begin(115200); 
 
-    controlPanel.initArrays();
-    controlPanel.setInputPins(22, false);
-//    controlPanel.setOutputPins (16, 11);
-    controlPanel.printSetupData();
+  for(int i = 0; i < 4; i ++) {
+      controlPanel[i].initArrays();
+      if (i == 0) controlPanel[i].setInputPins(22, 1);
+      if (i == 1) controlPanel[i].setInputPins(30, 2);
+      if (i == 2) controlPanel[i].setInputPins(23, 3);
+      if (i == 3) controlPanel[i].setInputPins(31, 4);
+//    controlPanel.[i]setOutputPins (16, 11);
+      controlPanel[i].printSetupData();
+  }  
 
-    controlPanel2.initArrays();
-    controlPanel2.setInputPins(30, false);
-//    controlPanel2.setOutputPins (16, 11);
-    controlPanel2.printSetupData();
-  
 }
 
 
@@ -286,12 +291,10 @@ void loop() {
      
     unsigned long currentTime = millis();
     if (connectionStarted) {
-//        Serial.println(A0);
-
-         controlPanel.readData();
-         controlPanel.outputSerialData();
-         controlPanel2.readData();
-         controlPanel2.outputSerialData();
+        for(int i = 0; i < 4; i ++) {
+               controlPanel[i].readData();
+               controlPanel[i].outputSerialData();
+        }
     }
 }
 

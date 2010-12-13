@@ -40,9 +40,9 @@ MixerElement::MixerElement(int _componentNumber, int _mainPin) {
     mainPin = _mainPin;
     componentNumber = _componentNumber;
 //    laserPin = _laserPin;
-    
-    pinMode(laserPin, OUTPUT);
-    controlLaser(true);
+//    
+//    pinMode(laserPin, OUTPUT);
+//    controlLaser(true);
     
     // hand status related variables
     handActive = false;

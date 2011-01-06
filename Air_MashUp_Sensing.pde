@@ -72,7 +72,7 @@ class MixerElement {
         #define GEST_OFF                     0
         
         #define timer_array_length           4
-        #define timer_interval               30
+        #define timer_interval               35
         #define bpm_max                      240
         #define bpm_min                      40
         #define bpm_led_on_time              70
@@ -153,7 +153,7 @@ class MixerElement {
  **********************************/
 class ControlPanel {
     public:
-        #define num_sensors              12
+        #define num_sensors              13
         #define num_digital_sensors      8
         #define num_analog_sensors       4
         #define num_digital_LEDs         5
@@ -197,8 +197,6 @@ class ControlPanel {
         int sensorPrevVals[num_sensors][smoothAnalogPotReading];
         boolean sensorNewData[num_sensors];
         
-
-
         int analogMultiplexControlPin[3];
         int analogMultiplexPin;
         int digitalMultiplexControlPin[3];
@@ -216,8 +214,6 @@ class ControlPanel {
         int sensorAnalogCurVals[num_analog_sensors];
         boolean sensorAnalogNewData[num_analog_sensors];
         int sensorAnalogPrevVals[num_analog_sensors][smoothAnalogPotReading];
-
-
 
         int rotaryEncoderPins[2];
         int rotaryEncoderVals[2];
@@ -243,14 +239,14 @@ class ControlPanel {
         void readDigitalPin(int);
         void readAnalogPin(int);
         void readRotaryEncoder(int);
-        void serialOutputDigital(int);
-        void serialOutputAnalog(int);
-        void outputSerialData ();
+//        void serialOutputDigital(int);
+//        void serialOutputAnalog(int);
+        boolean outputSerialData ();
         void printSetupData();
 
         void setInputPins (int, int);          // first control pins, data collect pin
         void readPin(int);
-        void serialOutput(int);
+        boolean serialOutput(int);
 };
 
 
@@ -261,13 +257,14 @@ class ControlPanel {
  ***** SETUP AND LOOP FUNCTIONS *****
  ************************************/
 
-#define main_component            0
-#define main_volume_pin           0
-#define main_vol_sensor_num       0
-#define smooth_main_volume        6
+#define main_component               0
+#define main_volume_pin              0
+#define main_vol_sensor_num          0
+#define smooth_main_volume           6
 
-#define killer_switch_pin         15
-#define killer_switch_sensor_num  1
+#define killer_switch_pin            15
+#define killer_switch_sensor_num     1
+#define connection_confirm_interval  2000
 
 int main_volume;
 int main_volume_previous[smooth_main_volume];
@@ -276,13 +273,15 @@ boolean new_volume_data;
 int killer_switch;
 boolean new_killer_switch_data; 
 
-
 ControlPanel controlPanel[4] = {ControlPanel(1), ControlPanel(2), ControlPanel(3), ControlPanel(4)};
 
+long last_connection = 0;
+long connectionStartTime = -1;
 boolean connectionStarted = false;
+boolean readingStarted = false;
 
 void setup() {  
-  Serial.begin(115200); 
+  Serial.begin(57600); 
   initMainComponent();  
   for(int i = 0; i < 4; i ++) {
       controlPanel[i].initArrays();
@@ -293,29 +292,68 @@ void setup() {
 //    controlPanel.[i]setOutputPins (16, 11);
       controlPanel[i].printSetupData();
   }  
-
 }
 
 
 void loop() {
    if (Serial.available()) {
          char newCommand = Serial.read();
-         if (newCommand == 'S' || newCommand == 's') connectionStarted = true; 
-         if (newCommand == 'X' || newCommand == 'x') connectionStarted = false;
+         if (newCommand == 'S' || newCommand == 's') {
+           readingStarted = true; 
+           connectionStartTime = millis();
+           Serial.println("starting_amup_connection");
+         }
+         else if (newCommand == 'X' || newCommand == 'x') {
+            connectionStarted = false;
+            readingStarted = false;
+           Serial.println("closing_amup_connection");        
+         }
      }     
      
-    unsigned long currentTime = millis();
+    if(readingStarted) {
+        readSensors();
+    }
+
     if (connectionStarted) {
-        for(int i = 0; i < 4; i ++) {
-               controlPanel[i].readData();
-               readMainComponent();
-               
-               controlPanel[i].outputSerialData();
-               printMainComponent(); 
-        }
+        confirmConnectionNotice();
+        printSensors();
+    } 
+}
+
+void readSensors() { 
+    for(int i = 0; i < 4; i ++) { controlPanel[i].readData(); }
+    readMainComponent();
+    if (millis() - connectionStartTime > 2000 && !connectionStarted) {
+        connectionStarted = true;
+        Serial.println("amup_connected");
     }
 }
 
+void printSensors() { 
+
+        int new_data_counter = 0;
+        for(int i = 0; i < 4; i ++) {               
+            boolean output_status_channel = controlPanel[i].outputSerialData();
+            if (output_status_channel) new_data_counter++;
+        }
+
+        boolean output_status_volume = printMainComponent(); 
+        if (output_status_volume) new_data_counter++;
+
+        if (new_data_counter > 0) last_connection = millis();
+}
+
+void confirmConnectionNotice() {
+    if(millis() - last_connection > connection_confirm_interval) {
+        Serial.println("confirm");    
+        last_connection = millis();
+    }
+}
+
+/********************************************************
+ *  Main Component
+ *
+ *************************/
 
 void initMainComponent() {
   main_volume = analogRead(main_volume_pin); 
@@ -325,15 +363,14 @@ void initMainComponent() {
 }
 
 void readMainComponent() {
-  readVolume();  
+  readVolume();
   readKiller();
 }
 
-void printMainComponent() {
-  printVolume(); 
-  printKiller();
+boolean printMainComponent() {
+  if (printVolume() || printKiller()) return true;
+  return false;
 }
-
 
 void readVolume() {
       int new_volume = analogRead(main_volume_pin)/8;   // divide by 8 to convert values into MIDI range
@@ -354,14 +391,16 @@ void readVolume() {
       else new_volume_data = false;
 }
 
-void printVolume() {
+boolean printVolume() {
     if (new_volume_data) {
       Serial.print(main_component);
       Serial.print(" ");  
       Serial.print(main_vol_sensor_num);
       Serial.print(" ");  
       Serial.println(main_volume);
+      return true;
     }
+    return false;
 }
 
 void readKiller() {
@@ -374,14 +413,16 @@ void readKiller() {
       else new_killer_switch_data = false;
 }
 
-void printKiller() {
+boolean printKiller() {
     if (new_killer_switch_data) {
       Serial.print(main_component);
       Serial.print(" ");  
       Serial.print(killer_switch_sensor_num);
       Serial.print(" ");  
       Serial.println(killer_switch);
+      return true;
     }
+    return false;
 }
 
 

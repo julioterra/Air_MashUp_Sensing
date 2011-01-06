@@ -5,6 +5,7 @@
 void ControlPanel::readData() {
     for (int k = 0; k < num_sensors; k++) { readPin(k); }
     if (sensorCurVals[volLock] == 0) mixerElement.addTimedReading();
+ 
 }
 
 
@@ -20,6 +21,8 @@ void ControlPanel::readPin(int index_number) {
         if (sensorAnalog[index_number] == true) {
             if (index_number == rotarySelect) {
                 readRotaryEncoder(index_number);
+            } else if (index_number == proximity) {
+//                if (sensorCurVals[volLock] == 0) mixerElement.addTimedReading();
             } else {      
                 int newVal = analogRead(multiplex16ReadPin) / 8;   // divide by 8 to convert values into MIDI range
     
@@ -82,8 +85,8 @@ void ControlPanel::readRotaryEncoder (int index_number) {
         
         if (pos == 0 && turnCount != 0) {      // only assume a complete step on stationary position
             sensorNewData[index_number] = true;
-            if (turnCount > 0) sensorCurVals[index_number] = -1;
-            if (turnCount < 0) sensorCurVals[index_number] = 1;
+            if (turnCount > 0) sensorCurVals[index_number] = -3;
+            if (turnCount < 0) sensorCurVals[index_number] = 3;
             turnCount = 0;
         }
         
@@ -99,22 +102,34 @@ void ControlPanel::readRotaryEncoder (int index_number) {
  ** OUTPUT DATA FUNCTIONS
  ** Functions that read data from each of pins on the control panel
  *********************************/ 
-void ControlPanel::outputSerialData () {
-    for (int j = 0; j < num_sensors; j++) { serialOutput(j); }
-    mixerElement.updateVolumeMIDI();   
-    mixerElement.printMIDIVolume();
+boolean ControlPanel::outputSerialData () {
+    int new_data_counter = 0;
+    for (int j = 0; j < num_sensors; j++) { 
+        boolean read_status = serialOutput(j); 
+        if (read_status) new_data_counter++;
+     }
+      mixerElement.updateVolumeMIDI();   
+      mixerElement.printMIDIVolume();
+
+     if (new_data_counter > 0) return true;
+     return false;
 }
 
-void ControlPanel::serialOutput(int sensor_index) {
-    if (sensor_index < num_sensors) {
+boolean ControlPanel::serialOutput(int sensor_index) {
+    if (sensor_index < num_sensors && sensor_index != proximity) {
         if (sensorNewData[sensor_index]) {
             Serial.print(componentNumber);
             Serial.print(" ");
             Serial.print(sensorID[sensor_index]);
             Serial.print(" ");
             Serial.println(sensorCurVals[sensor_index]);
-        }  
+            return true;
+        }  else {
+//            mixerElement.updateVolumeMIDI();   
+//            mixerElement.printMIDIVolume();
+        }
     }
+    return false;
 } 
 
 
@@ -193,9 +208,6 @@ void ControlPanel::initArrays() {
     oldPos = 0;
     oldTurn = 0; 
     turnCount = 0;       
-
-    Serial.print(" Component Number from init Arrays ");
-    Serial.println(componentNumber);
     
     // initialize all arrays associated to sensors      
     for (int i = 0; i < num_sensors; i++) {
@@ -222,39 +234,35 @@ void ControlPanel::initArrays() {
 
 void ControlPanel::printSetupData() {
 
-    Serial.println("===========================");
-    Serial.print("Component Number: ");
+    Serial.print("component # ");
     Serial.println(componentNumber);
 
-    Serial.print("Multiplex Reading pin: ");
+    Serial.print("read pin # ");
     Serial.println(multiplex16ReadPin);
-    Serial.print("Multiplex control pins: ");
-    Serial.print(multiplex16ControlPin[0]);
-    Serial.print(" - ");
-    Serial.print(multiplex16ControlPin[1]);
-    Serial.print(" - ");
-    Serial.print(multiplex16ControlPin[2]);
-    Serial.print(" - ");
-    Serial.print(multiplex16ControlPin[3]);
-    Serial.println("");
 
-    Serial.println("Sensor Overview: ");
+    Serial.print("control pin # ");
+    Serial.print(multiplex16ControlPin[0]);
+    Serial.print(", ");
+    Serial.print(multiplex16ControlPin[1]);
+    Serial.print(", ");
+    Serial.print(multiplex16ControlPin[2]);
+    Serial.print(", ");
+    Serial.println(multiplex16ControlPin[3]);
+
+    Serial.println("sensor array #, id #, pin #");
     for (int i = 0; i < num_sensors; i++) {
-         Serial.print(" sensor number ");
          Serial.print(i);
-         Serial.print(" digital sensor ID ");
+         Serial.print(", ");
          Serial.print(sensorID[i]);
-         Serial.print(" sensor Pin ");
-         Serial.print(sensorPins[i]);
+         Serial.print(", ");
+         if (i == rotarySelect) {
+             Serial.print(rotaryEncoderPins[0]);
+             Serial.print(", ");
+             Serial.print(rotaryEncoderPins[1]);
+         } 
+         else Serial.print(sensorPins[i]);
          Serial.println(" ");
     }
-     
-         Serial.print(" rotary encoder - pin one ");
-         Serial.print(rotaryEncoderPins[0]);
-         Serial.print(" pin two ");
-         Serial.print(rotaryEncoderPins[1]);
-         Serial.println(" ");
-   
-     
+          
 }
 
